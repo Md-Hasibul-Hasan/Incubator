@@ -357,9 +357,6 @@ void handleRoot() {
 
 
 
-
-
-
 void handleGetData() {
   String json = "{\"temp\":" + String(temp) +
                 ",\"hum\":" + String(hum) +
@@ -391,6 +388,7 @@ void handleGetData() {
                 "}";
   server.send(200, "application/json", json);
 }
+
 
 void handleReset() {
   resetThresholds();
@@ -633,8 +631,8 @@ void displayRemainingTime(unsigned long timeInMillis) {
   unsigned long seconds = (timeInMillis % 60000) / 1000;
 
   // Clear the previous text area
-  tft.fillRect(68, 160, 98, 16, ILI9341_RED);
-  tft.setCursor(10, 160);
+  tft.fillRect(68, 140, 98, 16, ILI9341_RED);
+  tft.setCursor(10, 140);
   tft.print("TIME:");
   if (hours < 10) tft.print("0");
   tft.print(hours);
@@ -656,21 +654,21 @@ void motor_working() {
     digitalWrite(MOTOR_F_PIN, LOW);
     digitalWrite(MOTOR_B_PIN, LOW);
     // Clear previous motor status text
-    tft.fillRect(82, 130, 84, 16, ILI9341_RED);
-    tft.setCursor(10, 130);
+    tft.fillRect(82, 110, 84, 16, ILI9341_RED);
+    tft.setCursor(10, 110);
     tft.print("MOTOR: OFF ");
     remainingTimeMillis = motor_off - (current_time - motor_start_time);
   } else if (current_time - motor_start_time > motor_off && current_time - motor_start_time <= (motor_off + motor_running)) {
     // Clear previous motor status text
-     tft.fillRect(82, 130, 84, 16, ILI9341_RED);
-    tft.setCursor(10, 130);
+     tft.fillRect(82, 110, 84, 16, ILI9341_RED);
+    tft.setCursor(10, 110);
     if (motor_forward == 1) {
-      digitalWrite(MOTOR_F_PIN, HIGH);
       digitalWrite(MOTOR_B_PIN, LOW);
+      digitalWrite(MOTOR_F_PIN, HIGH);
       tft.print("MOTOR: Run F");
     } else {
-      digitalWrite(MOTOR_B_PIN, HIGH);
       digitalWrite(MOTOR_F_PIN, LOW);
+      digitalWrite(MOTOR_B_PIN, HIGH);
       tft.print("MOTOR: Run B");
     }
     remainingTimeMillis = (motor_off + motor_running) - (current_time - motor_start_time);
@@ -681,8 +679,8 @@ void motor_working() {
     else{motor_forward = 1;}
     remainingTimeMillis = 0; // Reset remaining time after transition
     // Clear previous motor status text
-    tft.fillRect(82, 130, 84, 16, ILI9341_RED);
-    tft.setCursor(10, 130);
+    tft.fillRect(82, 110, 84, 16, ILI9341_RED);
+    tft.setCursor(10, 110);
     tft.print("MOTOR: OFF ");
   }
 
@@ -752,112 +750,113 @@ void page_RootMenu(void) {
   tft.setCursor(0, 10);
   tft.setTextSize(3);
   tft.print(" ..HS INCUBATOR..");
-  tft.fillRect(0, 45, tft.width(), 5 , ILI9341_BLUE);
+  tft.fillRect(0, 37, tft.width(), 3 , ILI9341_BLUE);
   tft.setTextSize(2);
 
-  tft.fillRect(70, 70, 96, 16, ILI9341_RED);
-  tft.setCursor(10, 70);
+  tft.fillRect(70, 50, 96, 16, ILI9341_RED);
+  tft.setCursor(10, 50);
   tft.print("TEMP: ");
   tft.print(temp, 1);
   tft.print(" C");
 
-  tft.fillRect(70, 100, 96, 16, ILI9341_RED);
-  tft.setCursor(10, 100);
+  tft.fillRect(70, 80, 96, 16, ILI9341_RED);
+  tft.setCursor(10, 80);
   tft.print("HUMI: ");
   tft.print(hum, 1);
   tft.print(" %");
 
-  tft.fillRect(68, 190, 96, 16, ILI9341_RED);
-  tft.setCursor(10, 190);
-  tft.print("DAY: ");
+  tft.fillRect(70, 170, 98, 16, ILI9341_RED);
+  tft.setCursor(10, 170);
+  tft.print("DAY:  ");
+  if (day < 10 ){ tft.print("0");}
   tft.print(day);
 
   // Temperature control
   if (temp <= Heater_ON) {
     digitalWrite(HEATER_PIN, HIGH);
-    tft.fillRect(240, 70, 80, 16, ILI9341_RED);
-    tft.setCursor(180, 70);
+    tft.fillRect(240, 50, tft.width(), 16, ILI9341_RED);
+    tft.setCursor(180, 50);
     tft.print("HEAT: ON-I");
   } else if (temp >= Heater_OFF) {
     digitalWrite(HEATER_PIN, LOW);
-    tft.fillRect(240, 70, 80, 16, ILI9341_RED);
-    tft.setCursor(180, 70);
+    tft.fillRect(240, 50, tft.width(), 16, ILI9341_RED);
+    tft.setCursor(180, 50);
     tft.print("HEAT: OFF");
   }
   if (temp <= Bac_Heater_ON) {
     digitalWrite(BAC_HEATER_PIN, HIGH);
-    tft.fillRect(240, 70, 80, 16, ILI9341_RED);
-    tft.setCursor(180, 70);
+    tft.fillRect(240, 50, tft.width(), 16, ILI9341_RED);
+    tft.setCursor(180, 50);
     tft.print("HEAT: ON-II");
   } else if (temp >= Bac_Heater_OFF) {
     digitalWrite(BAC_HEATER_PIN, LOW);
-    tft.fillRect(240, 70, 90, 16, ILI9341_RED);
-    tft.setCursor(180, 70);
+    tft.fillRect(240, 50, tft.width(), 16, ILI9341_RED);
+    tft.setCursor(180, 50);
     tft.print("HEAT: OFF");
   }
 
   // Humidity control
   if (hum <= Humi_ON) {
     digitalWrite(HFIRE_PIN, HIGH);
-    tft.fillRect(240, 100, 50, 16, ILI9341_RED);
-    tft.setCursor(180, 100);
+    tft.fillRect(240, 80, tft.width(), 16, ILI9341_RED);
+    tft.setCursor(180, 80);
     tft.print("HUMI: ON");
   } else if (hum >= Humi_OFF) {
     digitalWrite(HFIRE_PIN, LOW);
-    tft.fillRect(240, 100, 50, 16, ILI9341_RED);
-    tft.setCursor(180, 100);
+    tft.fillRect(240, 80, tft.width(), 16, ILI9341_RED);
+    tft.setCursor(180, 80);
     tft.print("HUMI: OFF");
   }
 
   // DeHumidity control
   if (hum >= D_Humi_ON) {
     digitalWrite(DFIRE_PIN, HIGH);
-    tft.fillRect(240, 130, 50, 16, ILI9341_RED);
-    tft.setCursor(180, 130);
+    tft.fillRect(240, 110, tft.width(), 16, ILI9341_RED);
+    tft.setCursor(180, 110);
     tft.print("DHUM: ON");
   } else if (hum <= Humi_OFF) {
     digitalWrite(DFIRE_PIN, LOW);
-    tft.fillRect(240, 130, 50, 16, ILI9341_RED);
-    tft.setCursor(180, 130);
+    tft.fillRect(240, 110, tft.width(), 16, ILI9341_RED);
+    tft.setCursor(180, 110);
     tft.print("DHUM: OFF");
   }
 
   // Fan control
   if (temp >= HT_Fan_ON || ventilation_status) {
     digitalWrite(FAN_PIN, HIGH);
-    tft.fillRect(228, 160, 50, 16, ILI9341_RED);
-    tft.setCursor(180, 160);
-    tft.print("FAN: ON");
+    tft.fillRect(240, 140, tft.width(), 16, ILI9341_RED);
+    tft.setCursor(180, 140);
+    tft.print("FAN:  ON");
   } else {
     digitalWrite(FAN_PIN, LOW);
-    tft.fillRect(228, 160, 50, 16, ILI9341_RED);
-    tft.setCursor(180, 160);
-    tft.print("FAN: OFF");
+    tft.fillRect(240, 140, tft.width(), 16, ILI9341_RED);
+    tft.setCursor(180, 140);
+    tft.print("FAN:  OFF");
   }
 
   // Alarm control
   if (alarm_status){
     if (temp >= HT_Alarm_ON || hum >= HH_Alarm_ON || temp <= LT_Alarm_ON || hum <= LH_Alarm_ON) {
       digitalWrite(ALARM_PIN, HIGH);
-      tft.fillRect(252, 190, 50, 16, ILI9341_RED);
-      tft.setCursor(180, 190);
+      tft.fillRect(252, 170, tft.width(), 16, ILI9341_RED);
+      tft.setCursor(180, 170);
       tft.print("ALARM: ON");
     } else {
       digitalWrite(ALARM_PIN, LOW);
-      tft.fillRect(252, 190, 50, 16, ILI9341_RED);
-      tft.setCursor(180, 190);
+      tft.fillRect(252, 170, tft.width(), 16, ILI9341_RED);
+      tft.setCursor(180, 170);
       tft.print("ALARM: OFF");
     }
   } else{
     if (temp >= HT_Alarm_ON || hum >= HH_Alarm_ON || temp <= LT_Alarm_ON || hum <= LH_Alarm_ON) {
       digitalWrite(ALARM_PIN, LOW);
-      tft.fillRect(252, 190, 50, 16, ILI9341_RED);
-      tft.setCursor(180, 190);
+      tft.fillRect(252, 170, tft.width(), 16, ILI9341_RED);
+      tft.setCursor(180, 170);
       tft.print("ALARM: ON");
     } else {
       digitalWrite(ALARM_PIN, LOW);
-      tft.fillRect(252, 190, 50, 16, ILI9341_RED);
-      tft.setCursor(180, 190);
+      tft.fillRect(252, 170, tft.width(), 16, ILI9341_RED);
+      tft.setCursor(180, 170);
       tft.print("ALARM: OFF");
     }
   }
@@ -878,8 +877,8 @@ void page_RootMenu(void) {
     resetThresholds();
     // Clear the screen and display a reset message
     tft.fillScreen(ILI9341_BLACK);
-    tft.setCursor(0, 16);
-    tft.print("   .....Reset....");
+    tft.setCursor(70, 80);
+    tft.print("....RESET....");
     delay(500); // Show the reset message for a short time
     tft.fillScreen(ILI9341_BLACK);
   }
@@ -896,10 +895,11 @@ void page_RootMenu(void) {
   if (btn3_long_pressing) {
     btn3_long_pressing = false;
     motor_func_called = false;
-    digitalWrite(MOTOR_F_PIN, HIGH);
     digitalWrite(MOTOR_B_PIN, LOW);
-    tft.fillRect(82, 130,  84, 16, ILI9341_RED);
-    tft.setCursor(10, 130);
+    delay(100);
+    digitalWrite(MOTOR_F_PIN, HIGH);
+    tft.fillRect(82, 110,  84, 16, ILI9341_RED);
+    tft.setCursor(10, 110);
     tft.print("MOTOR: Run F");
   }
 
@@ -913,10 +913,11 @@ void page_RootMenu(void) {
   if (btn4_long_pressing) {
     btn4_long_pressing = false;
     motor_func_called = false;
-    digitalWrite(MOTOR_B_PIN, HIGH);
     digitalWrite(MOTOR_F_PIN, LOW);
-    tft.fillRect(82, 130,  84, 16, ILI9341_RED);
-    tft.setCursor(10, 130);
+    delay(100);
+    digitalWrite(MOTOR_B_PIN, HIGH);
+    tft.fillRect(82, 110,  84, 16, ILI9341_RED);
+    tft.setCursor(10, 110);
     tft.print("MOTOR: Run B");
   }
 
@@ -934,18 +935,19 @@ void page_RootMenu(void) {
     motor_start_time = millis();
 
     if (motor_status) {
-      digitalWrite(MOTOR_F_PIN, HIGH);
       digitalWrite(MOTOR_B_PIN, LOW);
-      tft.fillRect(82, 130,  84, 16, ILI9341_RED);
-      tft.setCursor(10, 130);
+      delay(100);
+      digitalWrite(MOTOR_F_PIN, HIGH);
+      tft.fillRect(82, 110,  84, 16, ILI9341_RED);
+      tft.setCursor(10, 110);
       tft.print("MOTOR: Run F");
       motor_status = false;
       motor_forward = 0;
     } else {
       digitalWrite(MOTOR_F_PIN, LOW);
       digitalWrite(MOTOR_B_PIN, LOW);
-      tft.fillRect(82, 130,  84, 16, ILI9341_RED);
-      tft.setCursor(10, 130);
+      tft.fillRect(82, 110,  84, 16, ILI9341_RED);
+      tft.setCursor(10, 110);
       tft.print("MOTOR: Off");
       motor_status = true;
       motor_func_called = true;
@@ -958,18 +960,19 @@ void page_RootMenu(void) {
     motor_start_time = millis();
   
     if (motor_status) {
-      digitalWrite(MOTOR_B_PIN, HIGH);
       digitalWrite(MOTOR_F_PIN, LOW);
-      tft.fillRect(82, 130,  84, 16, ILI9341_RED);
-      tft.setCursor(10, 130);
+      delay(100);
+      digitalWrite(MOTOR_B_PIN, HIGH);
+      tft.fillRect(82, 110,  84, 16, ILI9341_RED);
+      tft.setCursor(10, 110);
       tft.print("MOTOR: Run B");
       motor_status = false;
       motor_forward = 1;
     } else {
       digitalWrite(MOTOR_B_PIN, LOW);
       digitalWrite(MOTOR_F_PIN, LOW);
-      tft.fillRect(82, 130,  84, 16, ILI9341_RED);
-      tft.setCursor(10, 130);
+      tft.fillRect(82, 110,  84, 16, ILI9341_RED);
+      tft.setCursor(10, 110);
       tft.print("MOTOR: Off");
       motor_status = true;
       motor_func_called = true;
@@ -977,64 +980,8 @@ void page_RootMenu(void) {
   }
 
 
-    // tft.fillRect(0, 217,  tft.width(), 3 , ILI9341_BLUE);
-    // tft.setTextSize(1);
-
-    // tft.fillRect(56, 135,  40, tft.height() , ILI9341_RED);
-    // tft.setCursor(10, 140);
-    // tft.print("HEAT ON:");
-    // tft.print(Heater_ON,1);tft.print(",");tft.print(Bac_Heater_ON,1);
-    // tft.setCursor(10, 160);
-    // tft.print("HUMI ON:");
-    // tft.print(Humi_ON,1);
-    // tft.setCursor(10, 180);
-    // tft.print("HT_F_ON:");
-    // tft.print(HT_Fan_ON,1);
-    // tft.setCursor(10, 200);
-    // tft.print("HT_A_ON:");
-    // tft.print(HT_Alarm_ON,1);
-    // tft.setCursor(10, 220);
-    // tft.print("LT_A_ON:");
-    // tft.print(LT_Alarm_ON,1);
-    
-    // tft.fillRect(162, 135,  40, tft.height() , ILI9341_RED);
-    // tft.setCursor(110, 140);
-    // tft.print("HEAT OFF:");
-    // tft.print(Heater_OFF,1);tft.print(",");tft.print(Bac_Heater_OFF,1);
-    // tft.setCursor(110, 160);
-    // tft.print("HUMI OFF:");
-    // tft.print(Humi_OFF,1);
-    // tft.setCursor(110, 180);
-    // tft.print("HH_F_ON :");
-    // tft.print(HH_Fan_ON,1);
-    // tft.setCursor(110, 200);
-    // tft.print("HH_A_ON :");
-    // tft.print(HH_Alarm_ON,1);
-    // tft.setCursor(110, 220);
-    // tft.print("LH_A_ON :");
-    // tft.print(LH_Alarm_ON,1);
-
-    // tft.fillRect(268, 135,  40, tft.height() , ILI9341_RED);
-    // tft.setCursor(210, 140);
-    // tft.print("MOTOR OFF:");
-    // tft.print(motor_off_minute,0);
-    // tft.print(" MIN");
-    // tft.setCursor(210, 160);
-    // tft.print("MOTOR  ON:");
-    // tft.print(motor_running_second,0);
-    // tft.print(" SEC");
-    // tft.setCursor(210, 180);
-    // tft.print("VENT  OFF:");
-    // tft.print(ventilation_off_minute,0);
-    // tft.print(" MIN");
-    // tft.setCursor(210, 200);
-    // tft.print("VENT   ON:");
-    // tft.print(ventilation_running_second,0);
-    // tft.print(" SEC");
-    // tft.fillRect(236, 220,  40, tft.height() , ILI9341_RED);
-    // tft.setCursor(210, 220);
-    // tft.print("DAY:");
-    // tft.print(day);
+    tft.fillRect(0, 194,  tft.width(), 1 , ILI9341_RED);
+    tft.fillRect(0, 235,  tft.width(), 1 , ILI9341_RED);
     
 }
 
@@ -1052,7 +999,7 @@ void page_SetMenu(void) {
   digitalWrite(ALARM_PIN, LOW);
 
   tft.setTextSize(2);
-  tft.setCursor(80, 10);
+  tft.setCursor(90, 10);
   tft.print(">>SET_MENU<<");  
 
     // Update button states
@@ -1098,8 +1045,8 @@ void page_SetMenu(void) {
       // motor_start_time = millis();
       // ventilation_start_time = millis();
       tft.fillScreen(ILI9341_BLACK);
-      tft.setCursor(0, 0);
-      tft.print("....updated....");
+      tft.setCursor(70, 80);
+      tft.print("....UPDATED....");
       delay(500);
       tft.fillScreen(ILI9341_BLACK);
       currPage = ROOT_MENU;
@@ -1112,26 +1059,26 @@ void page_SetMenu(void) {
 
 void displayCurrentThreshold() {
   switch (currentThreshold) {
-    case 0: tft.setCursor(10,50); tft.print("ENTER HEATER ON:"); tft.setCursor(100,100); tft.print(Heater_ON, 1); break;
-    case 1: tft.setCursor(10,50); tft.print("ENTER HEATER OFF:"); tft.setCursor(100,100); tft.print(Heater_OFF, 1); break;
-    case 2: tft.setCursor(10,50); tft.print("ENTER BAC HEATER ON:"); tft.setCursor(100,100); tft.print(Bac_Heater_ON, 1); break;
-    case 3: tft.setCursor(10,50); tft.print("ENTER BAC HEATER OFF:"); tft.setCursor(100,100); tft.print(Bac_Heater_OFF, 1); break;
-    case 4: tft.setCursor(10,50); tft.print("ENTER HUMIDITY ON:"); tft.setCursor(100,100); tft.print(Humi_ON, 1); break;
-    case 5: tft.setCursor(10,50); tft.print("ENTER HUMIDITY OFF:"); tft.setCursor(100,100); tft.print(Humi_OFF, 1); break;
-    case 6: tft.setCursor(10,50); tft.print("ENTER DEHUMIDITY ON:"); tft.setCursor(100,100); tft.print(D_Humi_ON, 1); break;
-    case 7: tft.setCursor(10,50); tft.print("ENTER DEHUMIDITY OFF:"); tft.setCursor(100,100); tft.print(D_Humi_OFF, 1); break;
-    case 8: tft.setCursor(10,50); tft.print("ENTER HIGH TEMP FAN ON:"); tft.setCursor(100,100); tft.print(HT_Fan_ON, 1); break;
-    case 9: tft.setCursor(10,50); tft.print("ENTER HIGH TEMP ALARM ON:"); tft.setCursor(100,100); tft.print(HT_Alarm_ON, 1); break;
-    case 10: tft.setCursor(10,50); tft.print("ENTER HIGH HUMI ALARM ON:"); tft.setCursor(100,100); tft.print(HH_Alarm_ON, 1); break;
-    case 11: tft.setCursor(10,50); tft.print("ENTER LOW TEMP ALARM ON:"); tft.setCursor(100,100); tft.print(LT_Alarm_ON, 1); break;
-    case 12: tft.setCursor(10,50); tft.print("ENTER LOW HUMI ALARM ON:"); tft.setCursor(100,100); tft.print(LH_Alarm_ON, 1); break;
-    case 13: tft.setCursor(10,50); tft.print("MOTOR OFF PERIOD:"); tft.setCursor(100,100); tft.print(motor_off_minute,0); tft.print(" MIN"); break;
-    case 14: tft.setCursor(10,50); tft.print("MOTOR ON PERIOD:"); tft.setCursor(100,100); tft.print(motor_running_second,0); tft.print(" SEC"); break;
-    case 15: tft.setCursor(10,50); tft.print("VENTILATION OFF PERIOD:"); tft.setCursor(100,100); tft.print(ventilation_off_minute,0); tft.print(" MIN"); break;
-    case 16: tft.setCursor(10,50); tft.print("VENTILATION ON PERIOD:"); tft.setCursor(100,100); tft.print(ventilation_running_second,0); tft.print(" SEC"); break;
-    case 17: tft.setCursor(10,50); tft.print("Day:"); tft.setCursor(100,100); tft.print(day);  break;
-    case 18: tft.setCursor(10,50); tft.print("TEMPARATURE CALIBRATE:"); tft.setCursor(100,100); tft.print(t_cal,1);  break;
-    case 19: tft.setCursor(10,50); tft.print("HUMIDITY CALIBRATE:"); tft.setCursor(100,100); tft.print(h_cal,1);  break;
+    case 0: tft.setCursor(10,50); tft.print("1. HEATER ON:"); tft.setCursor(120,100); tft.print(Heater_ON, 1); tft.print(" C"); break;
+    case 1: tft.setCursor(10,50); tft.print("2. HEATER OFF:"); tft.setCursor(120,100); tft.print(Heater_OFF, 1); tft.print(" C"); break;
+    case 2: tft.setCursor(10,50); tft.print("3. BACKUP HEATER ON:"); tft.setCursor(120,100); tft.print(Bac_Heater_ON, 1); tft.print(" C"); break;
+    case 3: tft.setCursor(10,50); tft.print("4. BACKUP HEATER OFF:"); tft.setCursor(120,100); tft.print(Bac_Heater_OFF, 1); tft.print(" C"); break;
+    case 4: tft.setCursor(10,50); tft.print("5. HUMIDIFIER ON:"); tft.setCursor(120,100); tft.print(Humi_ON, 1); tft.print(" %"); break;
+    case 5: tft.setCursor(10,50); tft.print("6. HUMIDIFIER OFF:"); tft.setCursor(120,100); tft.print(Humi_OFF, 1); tft.print(" %"); break;
+    case 6: tft.setCursor(10,50); tft.print("7. DEHUMIDIFIER ON:"); tft.setCursor(120,100); tft.print(D_Humi_ON, 1); tft.print(" %"); break;
+    case 7: tft.setCursor(10,50); tft.print("8. DEHUMIDIFIER OFF:"); tft.setCursor(120,100); tft.print(D_Humi_OFF, 1); tft.print(" %"); break;
+    case 8: tft.setCursor(10,50); tft.print("9. HIGH TEMP FAN ON:"); tft.setCursor(120,100); tft.print(HT_Fan_ON, 1); tft.print(" C"); break;
+    case 9: tft.setCursor(10,50); tft.print("10. HIGH TEMP ALARM ON:"); tft.setCursor(120,100); tft.print(HT_Alarm_ON, 1); tft.print(" C"); break;
+    case 10: tft.setCursor(10,50); tft.print("11. HIGH HUMI ALARM ON:"); tft.setCursor(120,100); tft.print(HH_Alarm_ON, 1); tft.print(" %"); break;
+    case 11: tft.setCursor(10,50); tft.print("12. LOW TEMP ALARM ON:"); tft.setCursor(120,100); tft.print(LT_Alarm_ON, 1); tft.print(" C"); break;
+    case 12: tft.setCursor(10,50); tft.print("13. LOW HUMI ALARM ON:"); tft.setCursor(120,100); tft.print(LH_Alarm_ON, 1); tft.print(" %"); break;
+    case 13: tft.setCursor(10,50); tft.print("14. MOTOR OFF PERIOD:"); tft.setCursor(120,100); tft.print(motor_off_minute,0); tft.print(" Min"); break;
+    case 14: tft.setCursor(10,50); tft.print("15. MOTOR ON PERIOD:"); tft.setCursor(120,100); tft.print(motor_running_second,0); tft.print(" Sec"); break;
+    case 15: tft.setCursor(10,50); tft.print("16. VENT OFF PERIOD:"); tft.setCursor(120,100); tft.print(ventilation_off_minute,0); tft.print(" Min"); break;
+    case 16: tft.setCursor(10,50); tft.print("17. VENT ON PERIOD:"); tft.setCursor(120,100); tft.print(ventilation_running_second,0); tft.print(" Sec"); break;
+    case 17: tft.setCursor(10,50); tft.print("18. Day:"); tft.setCursor(150,100); tft.print(day);  break;
+    case 18: tft.setCursor(10,50); tft.print("19. TEMP CALIBRATION:"); tft.setCursor(120,100); tft.print(t_cal,1); tft.print(" C"); break;
+    case 19: tft.setCursor(10,50); tft.print("20. HUMI CALIBRATION:"); tft.setCursor(120,100); tft.print(h_cal,1); tft.print(" %"); break;
   }
 }
 
