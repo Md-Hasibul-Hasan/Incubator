@@ -1,0 +1,60 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incubator</title>
+
+    <style>
+
+body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.container{
+    margin: 10px auto;
+    border: 1px solid black;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(2,1fr);
+    grid-template-columns: 1fr;
+}
+
+.div{
+    border: 1px solid black;
+}
+
+.div1{
+    grid-column: 1/-1;
+}
+
+h2,b{
+    display: inline-block;
+    margin: 0px 20px;
+}
+    </style>
+
+</head>
+<body>
+
+    <div class="container">
+        <div class="div div1">
+            <h1>HS INCUBATOR</h1>
+            <h2 id='temperature'>Temperature: </h2>
+            <h2 id='humidity'>Humidity: </h2>
+            <br><br>
+        </div>
+        <div class="div div2"></div>
+        <div class="div div3"></div>
+        <div class="div div4"></div>
+        <div class="div div5"></div>
+        <div class="div div6"></div>
+        <div class="div div7"></div>
+    </div>
+
+</body>
+</html>
+
+

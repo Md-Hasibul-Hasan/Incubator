@@ -1,0 +1,230 @@
+<!-- <html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incubator</title>
+
+    <style>
+
+body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+main {
+    width: 90%; 
+    max-width: 800px; 
+    margin: 10px auto;
+    border: 1px solid black;
+    color: black;
+    background-color: #f0f8f0;
+    display: grid;
+    grid-template-rows: auto auto auto; 
+    grid-template-columns: 1fr;
+    grid-gap: 10px;
+}
+
+.div1 {
+    grid-column: 1 / -1; 
+}
+
+.div2 {
+    background-color: rgb(212, 207, 218);
+    text-align: left; 
+    padding-left: 10px;
+}
+
+.div3 {
+    background-color: rgb(174, 221, 239);
+    text-align: left; 
+    padding-left: 10px;
+}
+
+.div4 {
+    grid-column: 1 / -1; 
+}
+
+h2, b {
+    display: inline-block;
+    margin: 0 10px; 
+}
+
+p {
+    display: inline;
+    background-color: cyan;
+    border: 1px solid black;
+}
+
+input {
+    width: 80px;
+}
+
+@media (min-width: 600px) {
+    main {
+        grid-template-columns: 1fr 1fr; 
+    }
+}
+
+@media (min-width: 800px) {
+    h2 {
+        margin: 0 20px; 
+    }
+}
+
+
+    </style>
+
+</head>
+<body>
+    <main>
+        <div class="div1">
+            <h1>HS INCUBATOR</h1>
+            <h2>Temperature: C</h2> 
+            <h2>Humidity: %</h2>
+            <br><br>
+    
+            <b>Heater: <p>ON/OFF</p></b>
+            <b>Humidifier: <p>ON/OFF</p></b>
+            <b>Fan: <p>ON/OFF</p></b>
+            <b>Alarm: <p>ON/OFF</p></b> <br> <br>
+            <b>Motor: <p>OFF/RunF/RunB</p></b>
+            <b>Time: <input type="" ></b>
+
+            
+        </div>
+        <div class="div2">
+            Heater ON: <input type="number" value=""> C <br> <br>
+            Heater OFF: <input type="number" value=""> C <br> <br>
+            HT_Fan_ON: <input type="number" value=""> C <br> <br>
+            HT_Alarm_ON: <input type="number" value=""> C <br> <br>
+            LT_Alarm_ON: <input type="number" value=""> C <br> <br>
+            Motor OFF: <input type="number" value=""> min <br> <br>
+            Motor ON: <input type="number" value=""> sec <br> <br>
+        </div>
+        <div class="div3">
+            Humidifier ON: <input type="number" value=""> % <br> <br>
+            Humidifier OFF: <input type="number" value=""> % <br> <br>
+            HH_Fan_ON: <input type="number" value=""> C <br> <br>
+            HH_Alarm_ON: <input type="number" value=""> % <br> <br>
+            LH_Alarm_ON: <input type="number" value=""> % <br> <br>
+            Vent OFF: <input type="number" value=""> min <br> <br>
+            Vent ON: <input type="number" value=""> sec <br> <br>
+        </div>
+        <div class="div4">
+            <button>Set</button>
+            <button>Reset</button>
+        </div>
+    </main>
+
+</body>
+</html> -->
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta name='viewport' content='width=device-width, initial-scale=1'>
+        <style>
+        body { margin: 0; padding: 0; box-sizing: border-box; text-align: center; }
+        main { width: 90%; max-width: 800px; margin: 10px auto; border: 1px solid black; color: black; background-color: #f0f8f0; display: grid; grid-template-rows: auto auto auto; grid-template-columns: 1fr; grid-gap: 10px; }
+        .div1 { grid-column: 1 / -1; }
+        .div2, .div3 { text-align: left; padding-left: 10px; }
+        .div2 { background-color: rgb(212, 207, 218); }
+        .div3 { background-color: rgb(174, 221, 239); }
+        .div4 { grid-column: 1 / -1; }
+        h2, b { display: inline-block; margin: 10px 10px; }
+        span { display: inline; background-color: cyan; border: 1px solid black; padding: auto; }
+        input { width: 80px; }
+        button{background-color: rgb(241, 252, 144); }
+        @media (min-width: 600px) { main { grid-template-columns: 1fr 1fr; } }
+        @media (min-width: 800px) { h2 { margin: 0 20px; } }
+    </style>
+    </head>
+    <body>
+        <main>
+            <div class='div1'>
+                <h1>HS INCUBATOR</h1>
+                <h2 id='temperature'>Temperature: </h2>
+                <h2 id='humidity'>Humidity: </h2>
+                <br><br> <hr>
+                <b>Heater: <span id='heater'>OFF</span></b>
+                <b>B_Heater: <span id='backupheater'>OFF</span></b>
+                <b>Humidifier: <span id='humidifier'>OFF</span></b> <br> 
+                <b>Fan: <span id='fan'>OFF</span></b>
+                <b>Alarm: <span id='alarm'>OFF</span></b>
+                <b>Motor: <span id='motor'>OFF</span></b>
+            </div>
+            <div class='div2'>
+                Heater ON: <input id='heaterOn' type='number' value=''> C <button onclick='setThreshold("heaterOn", "Heater_ON")'>Set</button> <br><br>
+                Heater OFF: <input id='heaterOff' type='number' value=''> C <button onclick='setThreshold("heaterOff", "Heater_OFF")'>Set</button> <br><br>
+                B_Heater ON: <input id='backupheaterOn' type='number' value=''> C <button onclick='setThreshold("backupheaterOn", "Bac_Heater_ON")'>Set</button> <br><br>
+                B_Heater OFF: <input id='backupheaterOff' type='number' value=''> C <button onclick='setThreshold("backupheaterOff", "Bac_Heater_OFF")'>Set</button> <br><br>
+                HT_Fan_ON: <input id='htFanOn' type='number' value=''> C <button onclick='setThreshold("htFanOn", "HT_Fan_ON")'>Set</button> <br><br>
+                HT_Alarm_ON: <input id='htAlarmOn' type='number' value=''> C <button onclick='setThreshold("htAlarmOn", "HT_Alarm_ON")'>Set</button> <br><br>
+                Motor OFF: <input id='motorOff' type='number' value=''> min <button onclick='setThreshold("motorOff", "motor_off_minute")'>Set</button> <br><br>
+                Motor ON: <input id='motorOn' type='number' value=''> sec <button onclick='setThreshold("motorOn", "motor_running_second")'>Set</button> <br><br>
+            </div>
+            <div class='div3'>
+                Humidifier ON: <input id='humidifierOn' type='number' value=''> % <button onclick='setThreshold("humidifierOn", "Humi_ON")'>Set</button> <br><br>
+                Humidifier OFF: <input id='humidifierOff' type='number' value=''> % <button onclick='setThreshold("humidifierOff", "Humi_OFF")'>Set</button> <br><br>
+                HH_Fan_ON: <input id='hhFanOn' type='number' value=''> C <button onclick='setThreshold("hhFanOn", "HH_Fan_ON")'>Set</button> <br><br>
+                HH_Alarm_ON: <input id='hhAlarmOn' type='number' value=''> % <button onclick='setThreshold("hhAlarmOn", "HH_Alarm_ON")'>Set</button> <br><br>
+                LH_Alarm_ON: <input id='lhAlarmOn' type='number' value=''> % <button onclick='setThreshold("lhAlarmOn", "LH_Alarm_ON")'>Set</button> <br><br>
+                LT_Alarm_ON: <input id='ltAlarmOn' type='number' value=''> C <button onclick='setThreshold("ltAlarmOn", "LT_Alarm_ON")'>Set</button> <br><br>
+                Vent OFF: <input id='ventOff' type='number' value=''> min <button onclick='setThreshold("ventOff", "ventilation_off_minute")'>Set</button> <br><br>
+                Vent ON: <input id='ventOn' type='number' value=''> sec <button onclick='setThreshold("ventOn", "ventilation_running_second")'>Set</button> <br><br>
+            </div>
+            <div class='div4'>
+                <button onclick='resetThresholds()'>Reset</button>
+            </div>
+        </main>
+        <script>
+            function updateData() {
+                var xhr = new XMLHttpRequest();
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState == 4 && xhr.status == 200) {
+                        var data = JSON.parse(xhr.responseText);
+                        document.getElementById('temperature').innerText = 'Temperature: ' + data.temp + ' C';
+                        document.getElementById('humidity').innerText = 'Humidity: ' + data.hum + ' %';
+                        document.getElementById('heater').innerText = data.heater;
+                        document.getElementById('backupheater').innerText = data.backupheater;
+                        document.getElementById('humidifier').innerText = data.humidifier;
+                        document.getElementById('fan').innerText = data.fan;
+                        document.getElementById('alarm').innerText = data.alarm;
+                        document.getElementById('motor').innerText = data.motor;
+                        document.getElementById('heaterOn').value = data.heaterOn;
+                        document.getElementById('heaterOff').value = data.heaterOff;
+                        document.getElementById('backupheaterOn').value = data.backupheaterOn;
+                        document.getElementById('backupheaterOff').value = data.backupheaterOff;
+                        document.getElementById('htFanOn').value = data.htFanOn;
+                        document.getElementById('htAlarmOn').value = data.htAlarmOn;
+                        document.getElementById('ltAlarmOn').value = data.ltAlarmOn;
+                        document.getElementById('motorOff').value = data.motorOff;
+                        document.getElementById('motorOn').value = data.motorOn;
+                        document.getElementById('humidifierOn').value = data.humidifierOn;
+                        document.getElementById('humidifierOff').value = data.humidifierOff;
+                        document.getElementById('hhFanOn').value = data.hhFanOn;
+                        document.getElementById('hhAlarmOn').value = data.hhAlarmOn;
+                        document.getElementById('lhAlarmOn').value = data.lhAlarmOn;
+                        document.getElementById('ventOff').value = data.ventOff;
+                        document.getElementById('ventOn').value = data.ventOn;
+                    }
+                };
+                xhr.open('GET', '/getData', true);
+                xhr.send();
+            }
+            function resetThresholds() {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', '/reset', true);
+                xhr.send();
+            }
+            function setThreshold(id, param) {
+                var value = document.getElementById(id).value;
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', '/set?param=' + param + '&value=' + encodeURIComponent(value), true);
+                xhr.send();
+            }
+            setInterval(updateData, 5000); // Update data every 5 seconds
+        </script>
+    </body>
+</html>
