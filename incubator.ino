@@ -7,13 +7,13 @@
 #include <SPI.h>
 #include <SD.h>
 
-// WiFi credentials
-const char* ssid = "Hasib Hasan";
-const char* password = "90909090";
-
 // AP credentials
 const char* ap_ssid = "HS INCUBATOR";
 const char* ap_password = "12345678";
+
+// WiFi credentials
+const char* ssid = "Hasib Hasan";
+const char* password = "90909090";
 
 // Static IP configuration for Station Mode
 IPAddress local_IP(192, 168, 0, 110);
@@ -46,18 +46,18 @@ const int btn4 = 27;
 
 
 // TFT Display
-#define TFT_CS     15   // Change to D3 or any available pin
-#define TFT_DC     2   // Keep unchanged
-// #define TFT_RST    -1   // Keep unchanged
-// #define TFT_MOSI   23   // Keep unchanged
-// #define TFT_CLK    18  // Keep unchanged
+#define TFT_CS     15   
+#define TFT_DC     2   
+// #define TFT_RST    -1  
+// #define TFT_MOSI   23   
+// #define TFT_CLK    18  
 
 
 // SD Card Module
-#define SD_CS      5   // Keep unchanged
-// #define SD_MOSI    23  // Keep unchanged
-// #define SD_MISO    19   // MISO pin for SD card module
-// #define SD_CLK     18   // Keep unchanged
+#define SD_CS      5   
+// #define SD_MOSI    23  
+// #define SD_MISO    19   
+// #define SD_CLK     18   
 
 
 
