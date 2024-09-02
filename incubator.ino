@@ -11,6 +11,10 @@
 const char* ap_ssid = "HS INCUBATOR";
 const char* ap_password = "12345678";
 
+// Static IP configuration for AP mode
+IPAddress apIP(192, 168, 4, 70);
+
+
 // WiFi credentials
 const char* ssid = "Hasib Hasan";
 const char* password = "90909090";
@@ -20,8 +24,6 @@ IPAddress local_IP(192, 168, 0, 110);
 IPAddress gateway(192, 168, 0, 20);
 IPAddress subnet(255, 255, 255, 0);
 
-// Static IP configuration for AP mode
-IPAddress apIP(192, 168, 4, 70);
 
 // Create a web server object
 WebServer server(80);
@@ -704,7 +706,7 @@ void ventilation_working() {
 void dayCount() {
 
   // Check if 24 hours have passed 86400000
-  if (millis() - day_count_time >= 60000) {
+  if (millis() - day_count_time >= 86400000) {
     day++;
     day_count_time = millis(); // Reset the timer
     writeThresholdsToSD(); 
