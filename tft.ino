@@ -470,6 +470,42 @@ void handleSet() {
 
 
 void setup() {
+
+    // Initialize pins as INPUT_PULLUP first to prevent relay triggering
+    pinMode(HEATER_PIN, INPUT_PULLUP);
+    pinMode(BAC_HEATER_PIN, INPUT_PULLUP);
+    pinMode(HFIRE_PIN, INPUT_PULLUP);
+    pinMode(DFIRE_PIN, INPUT_PULLUP);
+    pinMode(FAN_PIN, INPUT_PULLUP);
+    pinMode(ALARM_PIN, INPUT_PULLUP);
+    pinMode(MOTOR_F_PIN, INPUT_PULLUP);
+    pinMode(MOTOR_B_PIN, INPUT_PULLUP);
+
+    delay(100);
+
+    // Set all pins as OUTPUT after ensuring they are HIGH
+    pinMode(HEATER_PIN, OUTPUT);
+    pinMode(BAC_HEATER_PIN, OUTPUT);
+    pinMode(HFIRE_PIN, OUTPUT);
+    pinMode(DFIRE_PIN, OUTPUT);
+    pinMode(FAN_PIN, OUTPUT);
+    pinMode(ALARM_PIN, OUTPUT);
+    pinMode(MOTOR_F_PIN, OUTPUT);
+    pinMode(MOTOR_B_PIN, OUTPUT);
+
+    // Ensure relays are OFF (HIGH) on startup (for active-low relays)
+    digitalWrite(HEATER_PIN, HIGH);
+    digitalWrite(BAC_HEATER_PIN, HIGH);
+    digitalWrite(HFIRE_PIN, HIGH);
+    digitalWrite(DFIRE_PIN, HIGH);
+    digitalWrite(FAN_PIN, HIGH);
+    digitalWrite(ALARM_PIN, HIGH);
+    digitalWrite(MOTOR_F_PIN, HIGH);
+    digitalWrite(MOTOR_B_PIN, HIGH);
+
+    delay(100);
+
+
   Serial.begin(115200);
   dht.begin();
   tft.begin();
@@ -486,7 +522,7 @@ void setup() {
   // Wait a little while to see if it connects
   int retries = 0;
   while (WiFi.status() != WL_CONNECTED && retries < 10) {
-    // delay(500);
+    // delay(100);
     Serial.print(".");
     retries++;
   }
@@ -502,7 +538,7 @@ void setup() {
 
     // Configuring Access Point (AP Mode) as fallback
     WiFi.softAPConfig(apIP, gateway, subnet);
-    WiFi.softAP("HS_INCUBATOR","12345678");
+    WiFi.softAP("HS INCUBATOR","12345678");
     Serial.print("AP IP Address: ");
     Serial.println(WiFi.softAPIP());  
   }
@@ -519,15 +555,7 @@ void setup() {
 
   Serial.println("HTTP server started");
 
-  // Initialize pins
-  pinMode(HEATER_PIN, OUTPUT);
-  pinMode(BAC_HEATER_PIN, OUTPUT);
-  pinMode(HFIRE_PIN, OUTPUT);
-  pinMode(DFIRE_PIN, OUTPUT);
-  pinMode(FAN_PIN, OUTPUT);
-  pinMode(ALARM_PIN, OUTPUT);
-  pinMode(MOTOR_F_PIN, OUTPUT);
-  pinMode(MOTOR_B_PIN, OUTPUT);
+
 
   // Link button functions
   button1.attachClick(click1);
@@ -894,6 +922,12 @@ void page_RootMenu(void) {
       alarm_off_time = millis();
   }
 
+  if (btn2_double_clicked){
+    btn2_double_clicked = false;
+    delay(500);
+    ESP.restart();  // Restart the ESP32
+  }
+
   // Handle Button 2 long click for resetting thresholds
   if (btn2_long_clicked && motor_func_called) {
     btn2_long_clicked = false;
@@ -1098,11 +1132,11 @@ void page_SetMenu(void) {
   }
 
 void page_MsgMenu(void) {
-  resetButtonStates();  // Reset button states to avoid unintended actions
-  button1.tick();       // Update button 1 state
-  button2.tick();       // Update button 2 state
-  button3.tick();       // Update button 3 state
-  button4.tick();       // Update button 4 state
+  resetButtonStates();  
+  button1.tick();       
+  button2.tick();       
+  button3.tick();       
+  button4.tick();       
 
   tft.setTextSize(2);
 
@@ -1129,7 +1163,7 @@ void page_MsgMenu(void) {
     btn1_long_clicked = false;  
     tft.fillRect(0, 0, tft.width(), 90, ILI9341_BLACK);
     tft.setCursor(10, 10);
-    tft.print("For WiFi Configuration ");
+    tft.print(" For WiFi Configuration ");
     tft.setCursor(50, 50);
     tft.print("visit: 192.168.10.1 ");
     Serial.println("Starting WiFi Config...");
@@ -1145,7 +1179,7 @@ void page_MsgMenu(void) {
     // Start WiFiManager configuration portal
     WiFiManager wm;
     wm.setAPStaticIPConfig(apIP, gateway, subnet);
-    wm.setConfigPortalTimeout(120); // Close portal after 2 minutes
+    wm.setConfigPortalTimeout(180); // Close portal after 3 minutes
     bool res = wm.startConfigPortal("HS_INCUBATOR");
 
 
@@ -1196,7 +1230,7 @@ void page_MsgMenu(void) {
         Serial.println("Reconnection failed, setting up AP mode...");
 
         WiFi.softAPConfig(apIP, gateway, subnet);
-        WiFi.softAP("HS_INCUBATOR","12345678");  
+        WiFi.softAP("HS INCUBATOR","12345678");  
         tft.fillRect(0, 0, tft.width(), 90, ILI9341_BLACK);
         tft.setCursor(10, 10);
         tft.print("AP Mode Active");
