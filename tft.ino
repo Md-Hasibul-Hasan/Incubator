@@ -1,12 +1,12 @@
 #include <WiFi.h>
 #include <WiFiManager.h>
 #include <WebServer.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_ILI9341.h>
-#include <DHT.h>
 #include "OneButton.h"
+#include <DHT.h>
 #include <SPI.h>
 #include <SD.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_ILI9341.h>
 
 IPAddress apIP(192, 168, 10, 1);  // New AP IP (e.g., 192.168.10.1)
 IPAddress gateway(192, 168, 10, 1);  // Gateway, usually the same as the AP IP
@@ -419,6 +419,8 @@ void handleSet() {
   if (server.hasArg("param") && server.hasArg("value")) {
     String param = server.arg("param");
     String value = server.arg("value");
+    tft.fillRect(0, 100, tft.width(), 24, ILI9341_BLACK);
+
 
     // Update thresholds based on the parameter
     if (param == "Heater_ON") {
@@ -556,7 +558,6 @@ void setup() {
   server.on("/reset", handleReset);
   server.on("/set", handleSet);
   server.begin();
-
   Serial.println("HTTP server started");
 
 
@@ -896,12 +897,8 @@ void page_RootMenu(void) {
   button3.tick();
   button4.tick();
 
-  if (motor_func_called) {
-    motor_working();
-  }
-
+  if (motor_func_called) {motor_working();}
   ventilation_working();
-
   dayCount();
 
 
@@ -953,9 +950,9 @@ void page_RootMenu(void) {
 
 
   if (btn2_clicked){
-      btn2_clicked = false;
-      alarm_status = false;
-      alarm_off_time = millis();
+    btn2_clicked = false;
+    alarm_status = false;
+    alarm_off_time = millis();
   }
 
   if (btn2_double_clicked){
@@ -1150,8 +1147,6 @@ void page_SetMenu(void) {
 
     if (btn1_long_clicked) {
       btn1_long_clicked = false;
-      // motor_start_time = millis();
-      // ventilation_start_time = millis();
       tft.fillScreen(ILI9341_BLACK);
       tft.setCursor(70, 80);
       tft.print("....UPDATED....");
