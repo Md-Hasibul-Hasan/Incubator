@@ -1,12 +1,12 @@
 #include <WiFi.h>
 #include <WiFiManager.h>
 #include <WebServer.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_ILI9341.h>
-#include <DHT.h>
 #include "OneButton.h"
+#include <DHT.h>
 #include <SPI.h>
 #include <SD.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
 IPAddress apIP(192, 168, 10, 1);  // New AP IP (e.g., 192.168.10.1)
 IPAddress gateway(192, 168, 10, 1);  // Gateway, usually the same as the AP IP
@@ -21,25 +21,17 @@ WebServer server(80);
 
 #define HEATER_PIN 16
 #define BAC_HEATER_PIN 17
-#define HFIRE_PIN 21
-#define DFIRE_PIN 22
-#define MOTOR_F_PIN 25
-#define MOTOR_B_PIN 26
-#define FAN_PIN 32
-#define ALARM_PIN 33
+#define HFIRE_PIN 26
+#define DFIRE_PIN 5
+#define MOTOR_F_PIN 33
+#define MOTOR_B_PIN 32
+#define FAN_PIN 4
+#define ALARM_PIN 15
 
-const int btn1 = 12;
-const int btn2 = 13;
-const int btn3 = 14;
-const int btn4 = 27;
-
-
-// TFT Display
-#define TFT_CS     15   
-#define TFT_DC     2   
-// #define TFT_RST    -1  
-// #define TFT_MOSI   23   
-// #define TFT_CLK    18  
+const int btn1 = 27;
+const int btn2 = 14;
+const int btn3 = 12;
+const int btn4 = 13;
 
 
 // SD Card Module
@@ -50,12 +42,13 @@ const int btn4 = 27;
 
 
 
-Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
-
-
 #define DHTPIN 4
-#define DHTTYPE DHT11
+#define DHTTYPE DHT22
 DHT dht(DHTPIN, DHTTYPE);
+
+LiquidCrystal_I2C lcd(0x27, 20, 4); // I2C address, 20 columns, 4 rows
+
+
 
 OneButton button1(btn1, true);
 OneButton button2(btn2, true);
@@ -64,7 +57,7 @@ OneButton button4(btn4, true);
 
 
 
-
+uint8_t esp_temp;
 float temp=0;
 float hum=0;
 float t_cal=0;
@@ -90,6 +83,7 @@ float ventilation_off_minute = 120;
 float ventilation_running_second = 10;
 int day = 0;
 
+
 // Motor timings
 int motor_forward = 1;
 bool motor_func_called = true;
@@ -106,6 +100,7 @@ unsigned long motor_start_time = 0;
 unsigned long motor_ramain_time_millis =0;
 unsigned long ventilation_start_time = 0;
 unsigned long current_time;
+
 
 bool error = false;
 String sensor_msg;
@@ -407,12 +402,11 @@ void handleGetData() {
 void handleReset() {
     resetThresholds();
     // Clear the screen and display a reset message
-    tft.fillScreen(ILI9341_BLACK);
-    tft.setTextSize(2);
-    tft.setCursor(70, 80);
-    tft.print("....Reset....");
+    lcd.clear();
+    lcd.setCursor(3, 2);
+    lcd.print("....Reset....");
     delay(500); // Show the reset message for a short time
-    tft.fillScreen(ILI9341_BLACK);
+    lcd.clear();
     server.send(200, "text/plain", "Thresholds Reset");
 }
 
@@ -421,6 +415,8 @@ void handleSet() {
   if (server.hasArg("param") && server.hasArg("value")) {
     String param = server.arg("param");
     String value = server.arg("value");
+    lcd.setCursor(0, 2);
+    lcd.print("                  "); // Clear the old value
 
     // Update thresholds based on the parameter
     if (param == "Heater_ON") {
@@ -467,6 +463,13 @@ void handleSet() {
   server.send(200, "text/plain", "Threshold updated");
 }
 
+#ifdef __cplusplus
+extern "C" {
+    #endif
+    uint8_t temprature_sens_read();
+    #ifdef __cplusplus
+}
+#endif
 
 
 void setup() {
@@ -476,10 +479,10 @@ void setup() {
     pinMode(BAC_HEATER_PIN, INPUT_PULLUP);
     pinMode(HFIRE_PIN, INPUT_PULLUP);
     pinMode(DFIRE_PIN, INPUT_PULLUP);
-    pinMode(FAN_PIN, INPUT_PULLUP);
-    // pinMode(ALARM_PIN, INPUT_PULLUP);
     pinMode(MOTOR_F_PIN, INPUT_PULLUP);
     pinMode(MOTOR_B_PIN, INPUT_PULLUP);
+    pinMode(FAN_PIN, INPUT_PULLUP);
+    // pinMode(ALARM_PIN, INPUT_PULLUP);
 
     delay(100);
 
@@ -488,32 +491,29 @@ void setup() {
     pinMode(BAC_HEATER_PIN, OUTPUT);
     pinMode(HFIRE_PIN, OUTPUT);
     pinMode(DFIRE_PIN, OUTPUT);
-    pinMode(FAN_PIN, OUTPUT);
-    pinMode(ALARM_PIN, OUTPUT);
     pinMode(MOTOR_F_PIN, OUTPUT);
     pinMode(MOTOR_B_PIN, OUTPUT);
+    pinMode(FAN_PIN, OUTPUT);
+    pinMode(ALARM_PIN, OUTPUT);
 
     // Ensure relays are OFF (HIGH) on startup (for active-low relays)
     digitalWrite(HEATER_PIN, HIGH);
     digitalWrite(BAC_HEATER_PIN, HIGH);
     digitalWrite(HFIRE_PIN, HIGH);
     digitalWrite(DFIRE_PIN, HIGH);
-    digitalWrite(FAN_PIN, HIGH);
-    // digitalWrite(ALARM_PIN, HIGH);
     digitalWrite(MOTOR_F_PIN, HIGH);
     digitalWrite(MOTOR_B_PIN, HIGH);
+    digitalWrite(FAN_PIN, HIGH);
+    // digitalWrite(ALARM_PIN, HIGH);
 
-    delay(100);
-
+    delay(200);
 
   Serial.begin(115200);
   dht.begin();
-  tft.begin();
-  tft.setRotation(3);  
-  tft.setTextSize(2);
-  tft.setTextColor(ILI9341_WHITE);
-  tft.fillScreen(ILI9341_BLACK);
-
+  Wire.begin();
+  lcd.begin(20, 4);
+  lcd.backlight();
+  lcd.clear();
 
   // Try to connect to WiFi with previously saved credentials
   WiFi.begin(); // Previous credentials are used automatically
@@ -538,7 +538,7 @@ void setup() {
 
     // Configuring Access Point (AP Mode) as fallback
     WiFi.softAPConfig(apIP, gateway, subnet);
-    WiFi.softAP("HS_INCUBATOR","12345678");
+    WiFi.softAP("HS INCUBATOR","12345678");
     Serial.print("AP IP Address: ");
     Serial.println(WiFi.softAPIP());  
   }
@@ -552,7 +552,6 @@ void setup() {
   server.on("/reset", handleReset);
   server.on("/set", handleSet);
   server.begin();
-
   Serial.println("HTTP server started");
 
 
@@ -607,8 +606,6 @@ void setup() {
 
 
 
-
-
 void loop() {
 
   //   if (Serial.available() > 0) {
@@ -634,8 +631,12 @@ void loop() {
 
 
   server.handleClient();
-
   current_time = millis(); 
+
+  esp_temp = (temprature_sens_read() - 32)/1.8;
+  temp = dht.readTemperature() + t_cal;
+  hum = dht.readHumidity() + h_cal;
+
   switch (currPage) {
     case ROOT_MENU: page_RootMenu(); break;
     case SET_MENU: page_SetMenu(); break;
@@ -651,23 +652,24 @@ void resetButtonStates() {
   btn4_clicked = btn4_double_clicked = btn4_long_clicked = btn4_long_pressing = btn4_long_clicked_stop = false;
 }
 
+
+
 void displayRemainingTime(unsigned long timeInMillis) {
   unsigned long hours = timeInMillis / 3600000;
   unsigned long minutes = (timeInMillis % 3600000) / 60000;
   unsigned long seconds = (timeInMillis % 60000) / 1000;
 
-  // Clear the previous text area
-  tft.fillRect(68, 138, 98, 18, ILI9341_RED);
-  tft.setCursor(10, 140);
-  tft.print("TIME:");
-  if (hours < 10) tft.print("0");
-  tft.print(hours);
-  tft.print(":");
-  if (minutes < 10) tft.print("0");
-  tft.print(minutes);
-  tft.print(":");
-  if (seconds < 10) tft.print("0");
-  tft.print(seconds);
+  if (currPage == ROOT_MENU){
+  lcd.setCursor(0, 3);
+  lcd.print("T:");
+  if (hours < 10) lcd.print("0");
+  lcd.print(hours);
+  lcd.print(":");
+  if (minutes < 10) lcd.print("0");
+  lcd.print(minutes);
+  lcd.print(":");
+  if (seconds < 10) lcd.print("0");
+  lcd.print(seconds);}
 }
 
 void motor_working() {
@@ -678,23 +680,23 @@ void motor_working() {
   if (current_time - motor_start_time <= motor_off) {
     digitalWrite(MOTOR_F_PIN, HIGH);
     digitalWrite(MOTOR_B_PIN, HIGH);
-    // Clear previous motor status text
-    tft.fillRect(82, 108, 84, 18, ILI9341_RED);
-    tft.setCursor(10, 110);
-    tft.print("MOTOR:  OFF ");
+    if (currPage == ROOT_MENU){
+    lcd.setCursor(0, 2);
+    lcd.print("Motor:OFF ");}
     motor_ramain_time_millis = motor_off - (current_time - motor_start_time);
   } else if (current_time - motor_start_time > motor_off && current_time - motor_start_time <= (motor_off + motor_running)) {
-    // Clear previous motor status text
-    tft.fillRect(82, 108, 84, 18, ILI9341_RED);
-    tft.setCursor(10, 110);
     if (motor_forward == 1) {
       digitalWrite(MOTOR_B_PIN, HIGH);
       digitalWrite(MOTOR_F_PIN, LOW);
-      tft.print("MOTOR: Run F");
+      if (currPage == ROOT_MENU){
+      lcd.setCursor(0, 2);
+      lcd.print("Motor:RunF");}
     } else {
       digitalWrite(MOTOR_F_PIN, HIGH);
       digitalWrite(MOTOR_B_PIN, LOW);
-      tft.print("MOTOR: Run B");
+      if (currPage == ROOT_MENU){
+      lcd.setCursor(0, 2);
+      lcd.print("Motor:RunB");}
     }
     motor_ramain_time_millis = (motor_off + motor_running) - (current_time - motor_start_time);
   } else {
@@ -703,15 +705,19 @@ void motor_working() {
     if (motor_forward == 1){motor_forward = 0;}
     else{motor_forward = 1;}
     motor_ramain_time_millis = 0; // Reset remaining time after transition
-    // Clear previous motor status text
-    tft.fillRect(82, 108, 84, 18, ILI9341_RED);
-    tft.setCursor(10, 110);
-    tft.print("MOTOR:  OFF ");
+    if (currPage == ROOT_MENU){
+    lcd.setCursor(0, 2);
+    lcd.print("Motor:OFF ");}
   }
 
   // Call this function with the appropriate remaining time
   displayRemainingTime(motor_ramain_time_millis);
 }
+
+
+
+
+
 
 void ventilation_working() {
 
@@ -729,6 +735,7 @@ void ventilation_working() {
 
 }
 
+
 void dayCount() {
 
   // Check if 24 hours have passed 86400000
@@ -739,10 +746,137 @@ void dayCount() {
   }
 }
 
+void function(){
+
+// Temperature control
+  // lcd.fillRect(240, 48, lcd.width(), 18, ILI9341_RED);
+  // lcd.setCursor(180, 50);
+  // lcd.print("HEAT:  OFF");
+  if (temp <= Heater_ON) {
+    digitalWrite(HEATER_PIN, LOW);
+    if (currPage == ROOT_MENU){
+    lcd.setCursor(12, 0);
+    lcd.print("Heat:ON1");}
+  } else if (temp >= Heater_OFF) {
+    digitalWrite(HEATER_PIN, HIGH);
+    if (currPage == ROOT_MENU){
+    lcd.setCursor(12, 0);
+    lcd.print("Heat:OFF");}
+  }
+  if (temp <= Bac_Heater_ON) {
+    digitalWrite(BAC_HEATER_PIN, LOW);
+    if (currPage == ROOT_MENU){
+    lcd.setCursor(12, 0);
+    lcd.print("Heat:ON2");}
+  } else if (temp >= Bac_Heater_OFF) {
+    digitalWrite(BAC_HEATER_PIN, HIGH);
+    if (currPage == ROOT_MENU){
+    lcd.setCursor(12, 0);
+    lcd.print("Heat:OFF");}
+  }
+
+  // Humidity control
+  // lcd.fillRect(240, 78, lcd.width(), 18, ILI9341_RED);
+  // lcd.setCursor(180, 80);
+  // lcd.print("HUMI:  OFF");
+  if (hum <= Humi_ON) {
+    digitalWrite(HFIRE_PIN, LOW);
+    if (currPage == ROOT_MENU){
+    lcd.setCursor(12, 1);
+    lcd.print("Humi: ON");}
+  } else if (hum >= Humi_OFF) {
+    digitalWrite(HFIRE_PIN, HIGH);
+    if (currPage == ROOT_MENU){
+    lcd.setCursor(12, 1);
+    lcd.print("Humi:OFF");}
+  }
+
+  // DeHumidity control
+  // lcd.fillRect(240, 108, lcd.width(), 18, ILI9341_RED);
+  // lcd.setCursor(180, 110);
+  // lcd.print("DHUM:  OFF");
+  if (hum >= D_Humi_ON) {
+    digitalWrite(DFIRE_PIN, LOW);
+    if (currPage == ROOT_MENU){
+    lcd.setCursor(12, 2);
+    lcd.print("Dhum: ON");}
+  } else if (hum <= Humi_OFF) {
+    digitalWrite(DFIRE_PIN, HIGH);
+    if (currPage == ROOT_MENU){
+    lcd.setCursor(12, 2);
+    lcd.print("Dhum:OFF");}
+  }
+
+  // Fan control
+  // lcd.fillRect(240, 138, lcd.width(), 18, ILI9341_RED);
+  // lcd.setCursor(180, 140);
+  // lcd.print("FAN:   OFF");
+  if (temp >= HT_Fan_ON || ventilation_status) {
+    digitalWrite(FAN_PIN, LOW);
+    if (currPage == ROOT_MENU){
+    lcd.setCursor(12, 3);
+    lcd.print("Fan : ON");}
+  } else {
+    digitalWrite(FAN_PIN, HIGH);
+    if (currPage == ROOT_MENU){
+    lcd.setCursor(12, 3);
+    lcd.print("Fan :OFF");}
+  }
+
+
+
+  // Alarm control
+  // lcd.fillRect(240, 168, lcd.width(), 18, ILI9341_RED);
+  // lcd.setCursor(180, 170);
+  // lcd.print("ALA:   OFF");
+
+  if (alarm_status){
+    if (temp >= HT_Alarm_ON || hum >= HH_Alarm_ON || temp <= LT_Alarm_ON || hum <= LH_Alarm_ON) {
+      digitalWrite(ALARM_PIN, LOW);  // for relay
+      // digitalWrite(ALARM_PIN, HIGH); // for active buzzer
+      // tone(ALARM_PIN, 1000); // for passive buzzer
+
+      // if (currPage == ROOT_MENU){
+      // lcd.setCursor(0, 3);
+      // lcd.print("ALA: ON");}
+    } else {
+      digitalWrite(ALARM_PIN, HIGH); // for relay
+      // digitalWrite(ALARM_PIN, LOW); // for active buzzer
+      // noTone(ALARM_PIN); // for passive buzzer
+
+      // if (currPage == ROOT_MENU){
+      // lcd.setCursor(180, 170);
+      // lcd.print("ALA:   OFF");}
+    }
+  } else{
+    if (temp >= HT_Alarm_ON || hum >= HH_Alarm_ON || temp <= LT_Alarm_ON || hum <= LH_Alarm_ON) {
+      digitalWrite(ALARM_PIN, HIGH); // for relay
+      // digitalWrite(ALARM_PIN, LOW); // for active buzzer
+      // noTone(ALARM_PIN); // for passive buzzer
+
+      // if (currPage == ROOT_MENU){
+      // lcd.setCursor(180, 170);
+      // lcd.print("ALA:   ON");}
+    } else {
+      digitalWrite(ALARM_PIN, HIGH); // for relay
+      // digitalWrite(ALARM_PIN, LOW); // for active buzzer
+      // noTone(ALARM_PIN); // for passive buzzer
+
+      // if (currPage == ROOT_MENU){
+      // lcd.setCursor(180, 170);
+      // lcd.print("ALA:   OFF");}
+    }
+  }
+
+  if (!alarm_status && (millis() - alarm_off_time >= 300000)) {
+  alarm_status = true; // Reset alaram_status to true after 5 min
+  }
+}
+
+
 
 
 void page_RootMenu(void) {
-  tft.setTextSize(2);
   resetButtonStates();
   
   button1.tick();
@@ -750,16 +884,10 @@ void page_RootMenu(void) {
   button3.tick();
   button4.tick();
 
-  if (motor_func_called) {
-    motor_working();
-  }
-
+  if (motor_func_called) {motor_working();}
   ventilation_working();
-
   dayCount();
 
-  temp = dht.readTemperature() + t_cal;
-  hum = dht.readHumidity() + h_cal;
 
   // Check if any reads failed and exit early (to try again).
   if (isnan(hum) || isnan(temp)) {
@@ -781,149 +909,27 @@ void page_RootMenu(void) {
   // Serial.print(temp);
   // Serial.println(" *C");
 
-  tft.setCursor(0, 10);
-  tft.setTextSize(3);
-  tft.print(" ..HS INCUBATOR..");
-  tft.fillRect(0, 37, tft.width(), 3 , ILI9341_BLUE);
-  tft.setTextSize(2);
 
-  tft.fillRect(70, 48, 96, 18, ILI9341_RED);
-  tft.setCursor(10, 50);
-  tft.print("TEMP: ");
-  tft.print(temp, 1);
-  tft.print(" C");
+    lcd.setCursor(0, 0);
+    lcd.print("Tem:");
+    lcd.print(temp,1);
+    lcd.setCursor(9, 0);
+    lcd.print("C");
 
-  tft.fillRect(70, 78, 96, 18, ILI9341_RED);
-  tft.setCursor(10, 80);
-  tft.print("HUMI: ");
-  tft.print(hum, 1);
-  tft.print(" %");
+    lcd.setCursor(0, 1);
+    lcd.print("Hum:");
+    lcd.print(hum,1);
+    lcd.setCursor(9, 1);
+    lcd.print("%");
 
-  tft.fillRect(70, 168, 98, 18, ILI9341_RED);
-  tft.setCursor(10, 170);
-  tft.print("DAY:    ");
-  if (day < 10 ){ tft.print("0");}
-  tft.print(day);
-
-  // Temperature control
-  // tft.fillRect(240, 48, tft.width(), 18, ILI9341_RED);
-  // tft.setCursor(180, 50);
-  // tft.print("HEAT:  OFF");
-  if (temp <= Heater_ON) {
-    digitalWrite(HEATER_PIN, LOW);
-    tft.fillRect(240, 48, tft.width(), 18, ILI9341_RED);
-    tft.setCursor(180, 50);
-    tft.print("HEAT:  ON-I");
-  } else if (temp >= Heater_OFF) {
-    digitalWrite(HEATER_PIN, HIGH);
-    tft.fillRect(240, 48, tft.width(), 18, ILI9341_RED);
-    tft.setCursor(180, 50);
-    tft.print("HEAT:  OFF");
-  }
-  if (temp <= Bac_Heater_ON) {
-    digitalWrite(BAC_HEATER_PIN, LOW);
-    tft.fillRect(240, 48, tft.width(), 18, ILI9341_RED);
-    tft.setCursor(180, 50);
-    tft.print("HEAT: ON-II");
-  } else if (temp >= Bac_Heater_OFF) {
-    digitalWrite(BAC_HEATER_PIN, HIGH);
-    tft.fillRect(240, 48, tft.width(), 18, ILI9341_RED);
-    tft.setCursor(180, 50);
-    tft.print("HEAT:  OFF");
-  }
-
-  // Humidity control
-  // tft.fillRect(240, 78, tft.width(), 18, ILI9341_RED);
-  // tft.setCursor(180, 80);
-  // tft.print("HUMI:  OFF");
-  if (hum <= Humi_ON) {
-    digitalWrite(HFIRE_PIN, LOW);
-    tft.fillRect(240, 78, tft.width(), 18, ILI9341_RED);
-    tft.setCursor(180, 80);
-    tft.print("HUMI:  ON");
-  } else if (hum >= Humi_OFF) {
-    digitalWrite(HFIRE_PIN, HIGH);
-    tft.fillRect(240, 78, tft.width(), 18, ILI9341_RED);
-    tft.setCursor(180, 80);
-    tft.print("HUMI:  OFF");
-  }
-
-  // DeHumidity control
-  // tft.fillRect(240, 108, tft.width(), 18, ILI9341_RED);
-  // tft.setCursor(180, 110);
-  // tft.print("DHUM:  OFF");
-  if (hum >= D_Humi_ON) {
-    digitalWrite(DFIRE_PIN, LOW);
-    tft.fillRect(240, 108, tft.width(), 18, ILI9341_RED);
-    tft.setCursor(180, 110);
-    tft.print("DHUM:  ON");
-  } else if (hum <= Humi_OFF) {
-    digitalWrite(DFIRE_PIN, HIGH);
-    tft.fillRect(240, 108, tft.width(), 18, ILI9341_RED);
-    tft.setCursor(180, 110);
-    tft.print("DHUM:  OFF");
-  }
-
-  // Fan control
-  // tft.fillRect(240, 138, tft.width(), 18, ILI9341_RED);
-  // tft.setCursor(180, 140);
-  // tft.print("FAN:   OFF");
-  if (temp >= HT_Fan_ON || ventilation_status) {
-    digitalWrite(FAN_PIN, LOW);
-    tft.fillRect(240, 138, tft.width(), 18, ILI9341_RED);
-    tft.setCursor(180, 140);
-    tft.print("FAN:   ON");
-  } else {
-    digitalWrite(FAN_PIN, HIGH);
-    tft.fillRect(240, 138, tft.width(), 18, ILI9341_RED);
-    tft.setCursor(180, 140);
-    tft.print("FAN:   OFF");
-  }
+    function();
 
 
-  // Alarm control
-  // tft.fillRect(240, 168, tft.width(), 18, ILI9341_RED);
-  // tft.setCursor(180, 170);
-  // tft.print("ALA:   OFF");
-
-  if (alarm_status){
-    if (temp >= HT_Alarm_ON || hum >= HH_Alarm_ON || temp <= LT_Alarm_ON || hum <= LH_Alarm_ON) {
-      // digitalWrite(ALARM_PIN, LOW);
-      tone(ALARM_PIN, 1000);
-      tft.fillRect(240, 168, tft.width(), 18, ILI9341_RED);
-      tft.setCursor(180, 170);
-      tft.print("ALA:   ON");
-    } else {
-      // digitalWrite(ALARM_PIN, HIGH);
-      noTone(ALARM_PIN); 
-      tft.fillRect(240, 168, tft.width(), 18, ILI9341_RED);
-      tft.setCursor(180, 170);
-      tft.print("ALA:   OFF");
-    }
-  } else{
-    if (temp >= HT_Alarm_ON || hum >= HH_Alarm_ON || temp <= LT_Alarm_ON || hum <= LH_Alarm_ON) {
-      // digitalWrite(ALARM_PIN, HIGH);
-      noTone(ALARM_PIN); 
-      tft.fillRect(240, 168, tft.width(), 18, ILI9341_RED);
-      tft.setCursor(180, 170);
-      tft.print("ALA:   ON");
-    } else {
-      // digitalWrite(ALARM_PIN, HIGH);
-      noTone(ALARM_PIN); 
-      tft.fillRect(240, 168, tft.width(), 18, ILI9341_RED);
-      tft.setCursor(180, 170);
-      tft.print("ALA:   OFF");
-    }
-  }
-
-  if (!alarm_status && (millis() - alarm_off_time >= 300000)) {
-    alarm_status = true; // Reset alaram_status to true after 5 seconds
-  }
 
   if (btn2_clicked){
-      btn2_clicked = false;
-      alarm_status = false;
-      alarm_off_time = millis();
+    btn2_clicked = false;
+    alarm_status = false;
+    alarm_off_time = millis();
   }
 
   if (btn2_double_clicked){
@@ -933,28 +939,28 @@ void page_RootMenu(void) {
   }
 
   // Handle Button 2 long click for resetting thresholds
-  if (btn2_long_clicked && motor_func_called) {
+  if (btn2_long_clicked) {
     btn2_long_clicked = false;
     resetThresholds();
-    // Clear the screen and display a reset message
-    tft.fillScreen(ILI9341_BLACK);
-    tft.setCursor(70, 80);
-    tft.print("....RESET....");
+    // Optionally, display a message indicating reset
+    lcd.clear();
+    lcd.setCursor(0, 1);
+    lcd.print("   .....Reset....");
     delay(500); // Show the reset message for a short time
-    tft.fillScreen(ILI9341_BLACK);
+    lcd.clear();
   }
-  
-  // Move to the selected page
+    
+    // Move to the selected page
   if (btn1_long_clicked && motor_func_called) {
     currentThreshold = 0;
-    tft.fillScreen(ILI9341_BLACK);
+    lcd.clear();
     currPage = SET_MENU;
     return;
   }
 
   if (btn1_clicked && motor_func_called) {
     btn1_clicked = false;
-    tft.fillScreen(ILI9341_BLACK);
+    lcd.clear();
     currPage = MSG_MENU;
     return;
   }
@@ -966,9 +972,8 @@ void page_RootMenu(void) {
     digitalWrite(MOTOR_B_PIN, HIGH);
     delay(150);
     digitalWrite(MOTOR_F_PIN, LOW);
-    tft.fillRect(82, 108,  84, 18, ILI9341_RED);
-    tft.setCursor(10, 110);
-    tft.print("MOTOR: Run F");
+    lcd.setCursor(0, 2);
+    lcd.print("Motor:RunF");
   }
 
   if (btn3_long_clicked_stop) {
@@ -985,9 +990,8 @@ void page_RootMenu(void) {
     digitalWrite(MOTOR_F_PIN, HIGH);
     delay(150);
     digitalWrite(MOTOR_B_PIN, LOW);
-    tft.fillRect(82, 108,  84, 18, ILI9341_RED);
-    tft.setCursor(10, 110);
-    tft.print("MOTOR: Run B");
+    lcd.setCursor(0, 2);
+    lcd.print("Motor:RunB");
   }
 
   if (btn4_long_clicked_stop) {
@@ -997,6 +1001,7 @@ void page_RootMenu(void) {
     motor_func_called = true;
     motor_forward = 1;
   }
+
 
   // Click functionality
   if (btn3_clicked) {
@@ -1009,20 +1014,19 @@ void page_RootMenu(void) {
       digitalWrite(MOTOR_B_PIN, HIGH);
       delay(150);
       digitalWrite(MOTOR_F_PIN, LOW);
-      tft.fillRect(82, 108,  84, 18, ILI9341_RED);
-      tft.setCursor(10, 110);
-      tft.print("MOTOR: Run F");
+      lcd.setCursor(0, 2);
+      lcd.print("Motor:RunF");
       motor_status = false;
       motor_forward = 0;
-    } else {
+    }else {
       digitalWrite(MOTOR_F_PIN, HIGH);
       digitalWrite(MOTOR_B_PIN, HIGH);
-      tft.fillRect(82, 108,  84, 18, ILI9341_RED);
-      tft.setCursor(10, 110);
-      tft.print("MOTOR: Off");
+      lcd.setCursor(0, 2);
+      lcd.print("Motor:Off");
       motor_status = true;
       motor_func_called = true;
     }
+
   }
 
   if (btn4_clicked) {
@@ -1030,311 +1034,253 @@ void page_RootMenu(void) {
     motor_func_called = false;
     motor_start_time = millis();
     writeThresholdsToSD(); //************************************//
-  
+
     if (motor_status) {
       digitalWrite(MOTOR_F_PIN, HIGH);
       delay(150);
       digitalWrite(MOTOR_B_PIN, LOW);
-      tft.fillRect(82, 108,  84, 18, ILI9341_RED);
-      tft.setCursor(10, 110);
-      tft.print("MOTOR: Run B");
+      lcd.setCursor(0, 2);
+      lcd.print("Motor:RunB");
       motor_status = false;
       motor_forward = 1;
-    } else {
+    } else {  
       digitalWrite(MOTOR_B_PIN, HIGH);
       digitalWrite(MOTOR_F_PIN, HIGH);
-      tft.fillRect(82, 108,  84, 18, ILI9341_RED);
-      tft.setCursor(10, 110);
-      tft.print("MOTOR: Off");
+      lcd.setCursor(0, 2);
+      lcd.print("Motor:Off");
       motor_status = true;
       motor_func_called = true;
     }
+
   }
-
-
- // Draw the top fillRect line
-  tft.fillRect(0, 194, tft.width(), 1, ILI9341_RED);
-
-  // Check the error condition
-  if (error) {
-    drawSadEmoji(tft.width() / 2, 215, 15); // Draw sad emoji
-  } else {
-    drawHappyEmoji(tft.width() / 2, 215, 15); // Draw happy emoji
-  }
-
-  // Draw the bottom fillRect line
-  tft.fillRect(0, 235, tft.width(), 1, ILI9341_RED);
 }
 
+
+
+
 void page_SetMenu(void) {
+  lcd.clear();
   resetButtonStates();
-  
-  digitalWrite(HEATER_PIN, HIGH);
-  digitalWrite(BAC_HEATER_PIN, HIGH);
-  digitalWrite(HFIRE_PIN, HIGH);
-  digitalWrite(MOTOR_F_PIN, HIGH);
-  digitalWrite(MOTOR_B_PIN, HIGH);
-  digitalWrite(FAN_PIN, HIGH);
-  digitalWrite(ALARM_PIN, HIGH);
 
-  tft.setTextSize(2);
-  tft.setCursor(90, 10);
-  tft.print(">>SET_MENU<<");  
+    motor_working();
+    ventilation_working();
+    dayCount();
+    function();
 
-    // Update button states
     button1.tick();
     button2.tick();
     button3.tick();
     button4.tick();
- 
 
-    displayCurrentThreshold(); 
+  
+
+  lcd.setCursor(3, 0);
+  lcd.println(F(">>SET_MENU<<"));  
+
+  displayCurrentThreshold(); 
+
 
 
     if (btn3_clicked || btn3_long_pressing ) {
       incrementThreshold();
       btn3_clicked = false;
       btn3_long_pressing = false;
-      tft.fillRect(0, 100, tft.width(), 24, ILI9341_BLACK);
+
+      
     }
 
     if (btn4_clicked || btn4_long_pressing) {
       decrementThreshold();
       btn4_clicked = false;
       btn4_long_pressing = false;
-      tft.fillRect(0, 100, tft.width(), 24, ILI9341_BLACK);
+
     }
 
     if (btn1_clicked) {
       currentThreshold = (currentThreshold + 1) % NUM_THRESHOLDS;
       btn1_clicked = false;
-      tft.fillRect(0, 50, tft.width(), 24, ILI9341_BLACK);
-      tft.fillRect(0, 100, tft.width(), 24, ILI9341_BLACK);
+      lcd.setCursor(0, 2);
+      lcd.print("                  ");
+      lcd.setCursor(0, 3);
+      lcd.print("                  ");
     }
 
     if (btn2_clicked) {
       currentThreshold = (currentThreshold - 1 + NUM_THRESHOLDS) % NUM_THRESHOLDS; // Ensure wrapping correctly
       btn2_clicked = false;
-      tft.fillRect(0, 50, tft.width(), 24, ILI9341_BLACK);
-      tft.fillRect(0, 100, tft.width(), 24, ILI9341_BLACK);
+      lcd.setCursor(0, 2);
+      lcd.print("                  ");
+      lcd.setCursor(0, 3);
+      lcd.print("                  ");
     }
 
     if (btn1_long_clicked) {
       btn1_long_clicked = false;
-      // motor_start_time = millis();
-      // ventilation_start_time = millis();
-      tft.fillScreen(ILI9341_BLACK);
-      tft.setCursor(70, 80);
-      tft.print("....UPDATED....");
-      delay(500);
-      tft.fillScreen(ILI9341_BLACK);
+      lcd.clear();
+      lcd.setCursor(0, 1);
+      lcd.print(" .....updated....");
+      delay(500); // Show the reset message for a short time
+      lcd.clear();
       currPage = ROOT_MENU;
       return;
     }
 
-
   }
 
+
 void page_MsgMenu(void) {
-  resetButtonStates();  // Reset button states to avoid unintended actions
-  button1.tick();       // Update button 1 state
-  button2.tick();       // Update button 2 state
-  button3.tick();       // Update button 3 state
-  button4.tick();       // Update button 4 state
+  lcd.clear();
+  resetButtonStates();  
 
-  tft.setTextSize(2);
+  motor_working();
+  ventilation_working();
+  dayCount();
+  function();
 
-  // Check WiFi status and display IP address
+  button1.tick();       
+  button2.tick();       
+  button3.tick();       
+  button4.tick();       
+
+
+  tft.setCursor(0, 3);
+  tft.print("CHIP TEMP: ");
+  tft.print((esp_temp+esp_temp+esp_temp)/3);
+  tft.print(" C");
+  // Display WiFi connection status and IP address
   if (WiFi.status() == WL_CONNECTED) {
-    tft.fillRect(0, 0, tft.width(), 90, ILI9341_BLACK);
-    tft.setCursor(10, 10);
-    tft.print("Connected to ");
-    tft.print(WiFi.SSID());
-    tft.setCursor(50, 50);
-    tft.print("SIP: ");
-    tft.print(WiFi.localIP());
+    lcd.setCursor(0, 0);
+    lcd.print("Connected => ");
+    lcd.print(WiFi.SSID());  // Connected SSID
+    lcd.setCursor(0, 1);
+    lcd.print("W_IP: ");
+    lcd.print(WiFi.localIP());  // Local IP address
   } else {
-    tft.fillRect(0, 0, tft.width(), 90, ILI9341_BLACK);
-    tft.setCursor(10, 10);
-    tft.print(" WiFi Not Connected!!!");
-    tft.setCursor(50, 50);
-    tft.print("AIP: ");
-    tft.print(WiFi.softAPIP());
+    lcd.setCursor(0, 0);
+    lcd.print("WiFi Not Connected");  // Connection status
+    lcd.setCursor(0, 1);
+    lcd.print("E_IP: ");
+    lcd.print(WiFi.softAPIP());  // AP mode IP address
   }
 
   // Handle long press on button 1 for WiFiManager configuration
   if (btn1_long_clicked) {
-    btn1_long_clicked = false;  
-    tft.fillRect(0, 0, tft.width(), 90, ILI9341_BLACK);
-    tft.setCursor(10, 10);
-    tft.print(" For WiFi Configuration ");
-    tft.setCursor(50, 50);
-    tft.print("visit: 192.168.10.1 ");
+    btn1_long_clicked = false;  // Reset button state
+
+    // Activate all the devices
+    digitalWrite(HEATER_PIN, HIGH);
+    digitalWrite(BAC_HEATER_PIN, HIGH);
+    digitalWrite(HFIRE_PIN, HIGH);
+    digitalWrite(DFIRE_PIN, HIGH);
+    digitalWrite(MOTOR_F_PIN, HIGH);
+    digitalWrite(MOTOR_B_PIN, HIGH);
+    digitalWrite(FAN_PIN, HIGH);
+    digitalWrite(ALARM_PIN, HIGH);
+
+    // Display WiFi configuration message
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("For WiFi Configuration");
+    lcd.setCursor(0, 1);
+    lcd.print("Visit: 192.168.10.1");
     Serial.println("Starting WiFi Config...");
 
-    // Stop the web server to avoid conflicts with WiFiManager
+    // Stop the web server and start WiFiManager
     server.stop();
 
     // Disconnect any ongoing WiFi connections (helps with portal start)
     // WiFi.disconnect(true);
     // delay(1000);
 
-
-    // Start WiFiManager configuration portal
     WiFiManager wm;
     wm.setAPStaticIPConfig(apIP, gateway, subnet);
-    wm.setConfigPortalTimeout(180); // Close portal after 3 minutes
+    wm.setConfigPortalTimeout(180);  // Timeout after 3 minutes
     bool res = wm.startConfigPortal("HS_INCUBATOR");
 
-
-
-
-    // After configuration, ESP32 will attempt to reconnect to WiFi
     if (res) {
-      tft.fillRect(0, 0, tft.width(), 90, ILI9341_BLACK);
-      tft.setCursor(10, 10);
-      tft.print("Connected to ");
-      tft.print(WiFi.SSID());
-      tft.setCursor(50, 50);
-      tft.print("SIP: ");
-      tft.print(WiFi.localIP());
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Connected => ");
+      lcd.print(WiFi.SSID());
+      lcd.setCursor(0, 1);
+      lcd.print("W_IP: ");
+      lcd.print(WiFi.localIP());
     } else {
-      tft.fillRect(0, 0, tft.width(), 90, ILI9341_BLACK);
-      tft.setCursor(10, 10);
-      tft.print("Wifi Config Failed");
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("WiFi Config Failed");
       Serial.println("WiFiManager failed, attempting to reconnect...");
 
-      // Attempt to reconnect to previously saved WiFi
-      WiFi.begin();  // This will use the saved credentials automatically
-
+      // Try reconnecting to saved WiFi
+      WiFi.begin();
       int retries = 0;
+      lcd.clear();
       while (WiFi.status() != WL_CONNECTED && retries < 10) {
-        tft.fillRect(0, 0, tft.width(), 90, ILI9341_BLACK);
-        tft.setCursor(30, 10);
-        tft.print("Reconnecting...");
+        lcd.setCursor(0, 0);
+        lcd.print("Reconnecting...");
         retries++;
-        Serial.print(".");
       }
 
-      // Check if the reconnection was successful
+      // Check reconnection status
       if (WiFi.status() == WL_CONNECTED) {
-        tft.fillRect(0, 0, tft.width(), 90, ILI9341_BLACK);
-        tft.setCursor(10, 10);
-        tft.print("Reconnected to ");
-        tft.print(WiFi.SSID());
-        tft.setCursor(50, 50);
-        tft.print("SIP: ");
-        tft.print(WiFi.localIP());
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Reconnected to: ");
+        lcd.print(WiFi.SSID());
+        lcd.setCursor(0, 1);
+        lcd.print("W_IP: ");
+        lcd.print(WiFi.localIP());
       } else {
-        tft.fillRect(0, 0, tft.width(), 90, ILI9341_BLACK);
-        // Reconnection failed, create AP for manual WiFi configuration
-        tft.setCursor(10, 10);
-        tft.print("Reconnection Failed");
-
-        Serial.println("Reconnection failed, setting up AP mode...");
+        // Set AP mode if reconnection fails
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Reconnection Failed");
+        lcd.setCursor(0, 1);
+        lcd.print("E_IP: ");
+        lcd.print(WiFi.softAPIP());
 
         WiFi.softAPConfig(apIP, gateway, subnet);
-        WiFi.softAP("HS_INCUBATOR","12345678");  
-        tft.fillRect(0, 0, tft.width(), 90, ILI9341_BLACK);
-        tft.setCursor(10, 10);
-        tft.print("AP Mode Active");
-        tft.setCursor(50, 50);
-        tft.print("AIP: ");
-        tft.print(WiFi.softAPIP());
-        Serial.println("AP Mode Activated, IP: ");
-        Serial.print(WiFi.softAPIP());
+        WiFi.softAP("HS INCUBATOR", "12345678");
       }
     }
 
-    // Restart the web server after WiFiManager finishes
+    // Restart the web server
     server.begin();
     Serial.println("HTTP server restarted");
   }
 
-  // Draw a dividing line
-  tft.fillRect(0, 97, tft.width(), 3, ILI9341_RED);
-
-  // Display sensor messages and SD card messages
-  tft.setCursor(80, 110);
-  tft.print(sensor_msg);
-
-  tft.setCursor(80, 140);
-  tft.print(sd_msg);
-
-  tft.setCursor(20, 170);
-  tft.print(sd_read_msg);
-
-  tft.setCursor(20, 200);
-  tft.print(sd_write_msg);
-
-  // If button 1 is clicked, return to ROOT_MENU
+  // Display sensor or SD card messages if needed
   if (btn1_clicked) {
     btn1_clicked = false;  // Reset button state
-    tft.fillScreen(ILI9341_BLACK);
-    currPage = ROOT_MENU;  // Set current page to ROOT_MENU
+    lcd.clear();
+    currPage = ROOT_MENU;  // Return to ROOT_MENU
     return;
-  }
-}
-
-
-void drawHappyEmoji(int x, int y, int radius) {
-  // Draw face
-  tft.fillCircle(x, y, radius, ILI9341_YELLOW);
-  
-  // Draw eyes
-  tft.fillCircle(x - 6, y - 6, 3, ILI9341_BLACK);
-  tft.fillCircle(x + 6, y - 6, 3, ILI9341_BLACK);
-  
-  // Draw smile (arc)
-  drawArc(x, y + 2, radius - 8, radius - 8, 20, 160, ILI9341_BLACK); // Adjusted position and size
-}
-
-void drawSadEmoji(int x, int y, int radius) {
-  // Draw face
-  tft.fillCircle(x, y, radius, ILI9341_RED);
-  
-  // Draw eyes
-  tft.fillCircle(x - 6, y - 6, 3, ILI9341_BLACK);
-  tft.fillCircle(x + 6, y - 6, 3, ILI9341_BLACK);
-  
-  // Draw sad mouth (arc)
-  drawArc(x, y + 10, radius - 8, radius - 8, 200, 340, ILI9341_BLACK); // Adjusted position and size
-}
-
-
-// Function to draw an arc
-void drawArc(int x, int y, int w, int h, int start_angle, int end_angle, uint16_t color) {
-  float angle;
-  for (int i = start_angle; i < end_angle; i++) {
-    angle = i * 3.14 / 180;
-    tft.drawPixel(x + w * cos(angle), y + h * sin(angle), color);
   }
 }
 
 
 void displayCurrentThreshold() {
   switch (currentThreshold) {
-    case 0: tft.setCursor(10,50); tft.print("1. HEATER ON:"); tft.setCursor(120,100); tft.print(Heater_ON, 1); tft.print(" C"); break;
-    case 1: tft.setCursor(10,50); tft.print("2. HEATER OFF:"); tft.setCursor(120,100); tft.print(Heater_OFF, 1); tft.print(" C"); break;
-    case 2: tft.setCursor(10,50); tft.print("3. BACKUP HEATER ON:"); tft.setCursor(120,100); tft.print(Bac_Heater_ON, 1); tft.print(" C"); break;
-    case 3: tft.setCursor(10,50); tft.print("4. BACKUP HEATER OFF:"); tft.setCursor(120,100); tft.print(Bac_Heater_OFF, 1); tft.print(" C"); break;
-    case 4: tft.setCursor(10,50); tft.print("5. HUMIDIFIER ON:"); tft.setCursor(120,100); tft.print(Humi_ON, 1); tft.print(" %"); break;
-    case 5: tft.setCursor(10,50); tft.print("6. HUMIDIFIER OFF:"); tft.setCursor(120,100); tft.print(Humi_OFF, 1); tft.print(" %"); break;
-    case 6: tft.setCursor(10,50); tft.print("7. DEHUMIDIFIER ON:"); tft.setCursor(120,100); tft.print(D_Humi_ON, 1); tft.print(" %"); break;
-    case 7: tft.setCursor(10,50); tft.print("8. DEHUMIDIFIER OFF:"); tft.setCursor(120,100); tft.print(D_Humi_OFF, 1); tft.print(" %"); break;
-    case 8: tft.setCursor(10,50); tft.print("9. OVER TEMP FAN ON:"); tft.setCursor(120,100); tft.print(HT_Fan_ON, 1); tft.print(" C"); break;
-    case 9: tft.setCursor(10,50); tft.print("10. OVER TEMP ALARM ON:"); tft.setCursor(120,100); tft.print(HT_Alarm_ON, 1); tft.print(" C"); break;
-    case 10: tft.setCursor(10,50); tft.print("11. OVER HUMI ALARM ON:"); tft.setCursor(120,100); tft.print(HH_Alarm_ON, 1); tft.print(" %"); break;
-    case 11: tft.setCursor(10,50); tft.print("12. LOW TEMP ALARM ON:"); tft.setCursor(120,100); tft.print(LT_Alarm_ON, 1); tft.print(" C"); break;
-    case 12: tft.setCursor(10,50); tft.print("13. LOW HUMI ALARM ON:"); tft.setCursor(120,100); tft.print(LH_Alarm_ON, 1); tft.print(" %"); break;
-    case 13: tft.setCursor(10,50); tft.print("14. MOTOR OFF PERIOD:"); tft.setCursor(120,100); tft.print(motor_off_minute,0); tft.print(" Min"); break;
-    case 14: tft.setCursor(10,50); tft.print("15. MOTOR ON PERIOD:"); tft.setCursor(120,100); tft.print(motor_running_second,0); tft.print(" Sec"); break;
-    case 15: tft.setCursor(10,50); tft.print("16. VENT OFF PERIOD:"); tft.setCursor(120,100); tft.print(ventilation_off_minute,0); tft.print(" Min"); break;
-    case 16: tft.setCursor(10,50); tft.print("17. VENT ON PERIOD:"); tft.setCursor(120,100); tft.print(ventilation_running_second,0); tft.print(" Sec"); break;
-    case 17: tft.setCursor(10,50); tft.print("18. Day:"); tft.setCursor(150,100); tft.print(day);  break;
-    case 18: tft.setCursor(10,50); tft.print("19. TEMP CALIBRATION:"); tft.setCursor(120,100); tft.print(t_cal,1); tft.print(" C"); break;
-    case 19: tft.setCursor(10,50); tft.print("20. HUMI CALIBRATION:"); tft.setCursor(120,100); tft.print(h_cal,1); tft.print(" %"); break;
-
+    case 0: lcd.setCursor(0,2); lcd.print("1.HEATER ON:"); lcd.setCursor(7,3); lcd.print(Heater_ON, 1); lcd.print(" C"); break;
+    case 1: lcd.setCursor(0,2); lcd.print("2.HEATER OFF:"); lcd.setCursor(7,3); lcd.print(Heater_OFF, 1); lcd.print(" C"); break;
+    case 2: lcd.setCursor(0,2); lcd.print("3.BACKUP HEATER ON:"); lcd.setCursor(7,3); lcd.print(Bac_Heater_ON, 1); lcd.print(" C"); break;
+    case 3: lcd.setCursor(0,2); lcd.print("4.BACKUP HEATER OFF:"); lcd.setCursor(7,3); lcd.print(Bac_Heater_OFF, 1); lcd.print(" C"); break;
+    case 4: lcd.setCursor(0,2); lcd.print("5.HUMIDIFIER ON:"); lcd.setCursor(7,3); lcd.print(Humi_ON, 1); lcd.print(" %"); break;
+    case 5: lcd.setCursor(0,2); lcd.print("6.HUMIDIFIER OFF:"); lcd.setCursor(7,3); lcd.print(Humi_OFF, 1); lcd.print(" %"); break;
+    case 6: lcd.setCursor(0,2); lcd.print("7.DEHUMIDIFIER ON:"); lcd.setCursor(7,3); lcd.print(D_Humi_ON, 1); lcd.print(" %"); break;
+    case 7: lcd.setCursor(0,2); lcd.print("8.DEHUMIDIFIER OFF:"); lcd.setCursor(7,3); lcd.print(D_Humi_OFF, 1); lcd.print(" %"); break;
+    case 8:lcd.setCursor(0,2); lcd.print("9.O_TEMP FAN ON:"); lcd.setCursor(7,3); lcd.print(HT_Fan_ON, 1); lcd.print(" C"); break;
+    case 9: lcd.setCursor(0,2); lcd.print("10.O_TEMP ALARM ON: "); lcd.setCursor(7,3); lcd.print(HT_Alarm_ON, 1); lcd.print(" C"); break;
+    case 10: lcd.setCursor(0,2); lcd.print("11.O_HUMI ALARM ON:"); lcd.setCursor(7,3); lcd.print(HH_Alarm_ON, 1); lcd.print(" %"); break;
+    case 11: lcd.setCursor(0,2); lcd.print("12.L_TEMP ALARM ON:"); lcd.setCursor(7,3); lcd.print(LT_Alarm_ON, 1); lcd.print(" C"); break;
+    case 12: lcd.setCursor(0,2); lcd.print("13.L_HUMI ALARM ON:"); lcd.setCursor(7,3); lcd.print(LH_Alarm_ON, 1); lcd.print(" %"); break;
+    case 13: lcd.setCursor(0,2); lcd.print("14.MOTOR OFF PERIOD:"); lcd.setCursor(7,3); lcd.print(motor_off_minute, 0); lcd.print(" Min"); break;
+    case 14: lcd.setCursor(0,2); lcd.print("15.MOTOR ON PERIOD:"); lcd.setCursor(7,3); lcd.print(motor_running_second, 0); lcd.print(" Sec"); break;
+    case 15: lcd.setCursor(0,2); lcd.print("16.VENT OFF PERIOD:"); lcd.setCursor(7,3); lcd.print(ventilation_off_minute, 0); lcd.print(" Min"); break;
+    case 16: lcd.setCursor(0,2); lcd.print("17.VENT ON PERIOD:"); lcd.setCursor(7,3); lcd.print(ventilation_running_second, 0); lcd.print(" Sec"); break;
+    case 17: lcd.setCursor(0,2); lcd.print("18.Day:"); lcd.setCursor(7,3); lcd.print(day); break;
+    case 18: lcd.setCursor(0,2); lcd.print("19.TEMP CALIBRATION:"); lcd.setCursor(7,3); lcd.print(t_cal, 1); lcd.print(" C"); break;
+    case 19: lcd.setCursor(0,2); lcd.print("20.HUMI CALIBRATION:"); lcd.setCursor(7,3); lcd.print(h_cal, 1); lcd.print(" %"); break;
   }
 }
 
@@ -1356,14 +1302,15 @@ void incrementThreshold() {
     case 12: if (LH_Alarm_ON < 99.8) {LH_Alarm_ON += 0.1;} break;
     case 13: if (motor_off_minute < 999) { motor_off_minute += 1;} break; 
     case 14: if (motor_running_second < 999) { motor_running_second += 1;} break;
-    case 15: if(ventilation_off_minute < 999) { ventilation_off_minute += 1;} break; 
-    case 16: if(ventilation_running_second < 999) { ventilation_running_second += 1;} break;
-    case 17: if(day < 31) { day += 1;} break;
-    case 18: t_cal += .1; break;
-    case 19: h_cal += .1; break;
+    case 15: if (ventilation_off_minute < 999) { ventilation_off_minute += 1;} break; 
+    case 16: if (ventilation_running_second < 999) { ventilation_running_second += 1;} break;
+    case 17: if (day < 31) { day += 1;} break;
+    case 18: t_cal += 0.1; break;
+    case 19: h_cal += 0.1; break;
   }
   writeThresholdsToSD(); // Save to SD card after incrementing
 }
+
 
 void decrementThreshold() {
   switch (currentThreshold) {
@@ -1392,6 +1339,8 @@ void decrementThreshold() {
   writeThresholdsToSD(); // Save to SD card after incrementing
 }
 
+
+////////////////////////button ///////////////////////
 
 // Callback functions for buttons
 void click1() { btn1_clicked = true; }

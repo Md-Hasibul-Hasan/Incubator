@@ -21,17 +21,17 @@ WebServer server(80);
 
 #define HEATER_PIN 16
 #define BAC_HEATER_PIN 17
-#define HFIRE_PIN 15
-#define DFIRE_PIN 2
-#define MOTOR_F_PIN 25
-#define MOTOR_B_PIN 26
-#define FAN_PIN 33
-#define ALARM_PIN 32
+#define HFIRE_PIN 26
+#define DFIRE_PIN 25
+#define MOTOR_F_PIN 33
+#define MOTOR_B_PIN 32
+#define FAN_PIN 4
+#define ALARM_PIN 15
 
-const int btn1 = 12;
-const int btn2 = 13;
-const int btn3 = 14;
-const int btn4 = 27;
+const int btn1 = 13;
+const int btn2 = 27;
+const int btn3 = 12;
+const int btn4 = 14;
 
 
 // SD Card Module
@@ -39,8 +39,6 @@ const int btn4 = 27;
 // #define SD_MOSI    23  
 // #define SD_MISO    19   
 // #define SD_CLK     18   
-
-
 
 
 
@@ -404,12 +402,11 @@ void handleGetData() {
 void handleReset() {
     resetThresholds();
     // Clear the screen and display a reset message
-    lcd.fillScreen(ILI9341_BLACK);
-    lcd.setTextSize(2);
-    lcd.setCursor(70, 80);
+    lcd.clear();
+    lcd.setCursor(3, 2);
     lcd.print("....Reset....");
     delay(500); // Show the reset message for a short time
-    lcd.fillScreen(ILI9341_BLACK);
+    lcd.clear();
     server.send(200, "text/plain", "Thresholds Reset");
 }
 
@@ -418,7 +415,8 @@ void handleSet() {
   if (server.hasArg("param") && server.hasArg("value")) {
     String param = server.arg("param");
     String value = server.arg("value");
-    lcd.fillRect(0, 100, lcd.width(), 24, ILI9341_BLACK);
+    lcd.setCursor(0, 2);
+    lcd.print("                  "); // Clear the old value
 
     // Update thresholds based on the parameter
     if (param == "Heater_ON") {
@@ -484,7 +482,7 @@ void setup() {
     pinMode(MOTOR_F_PIN, INPUT_PULLUP);
     pinMode(MOTOR_B_PIN, INPUT_PULLUP);
     pinMode(FAN_PIN, INPUT_PULLUP);
-    pinMode(ALARM_PIN, INPUT_PULLUP);
+    // pinMode(ALARM_PIN, INPUT_PULLUP);
 
     delay(100);
 
@@ -506,7 +504,7 @@ void setup() {
     digitalWrite(MOTOR_F_PIN, HIGH);
     digitalWrite(MOTOR_B_PIN, HIGH);
     digitalWrite(FAN_PIN, HIGH);
-    digitalWrite(ALARM_PIN, HIGH);
+    // digitalWrite(ALARM_PIN, HIGH);
 
     delay(200);
 
@@ -685,7 +683,7 @@ void motor_working() {
     if (currPage == ROOT_MENU){
     lcd.setCursor(0, 2);
     lcd.print("Motor:OFF ");}
-    remainingTimeMillis = motor_off - (current_time - motor_start_time);
+    motor_ramain_time_millis = motor_off - (current_time - motor_start_time);
   } else if (current_time - motor_start_time > motor_off && current_time - motor_start_time <= (motor_off + motor_running)) {
     if (motor_forward == 1) {
       digitalWrite(MOTOR_B_PIN, HIGH);
@@ -700,7 +698,7 @@ void motor_working() {
       lcd.setCursor(0, 2);
       lcd.print("Motor:RunB");}
     }
-    remainingTimeMillis = (motor_off + motor_running) - (current_time - motor_start_time);
+    motor_ramain_time_millis = (motor_off + motor_running) - (current_time - motor_start_time);
   } else {
     motor_start_time = millis();
     writeThresholdsToSD(); //**********************************************//
@@ -713,7 +711,7 @@ void motor_working() {
   }
 
   // Call this function with the appropriate remaining time
-  displayRemainingTime(remainingTimeMillis);
+  displayRemainingTime(motor_ramain_time_millis);
 }
 
 
@@ -758,7 +756,7 @@ void function(){
     digitalWrite(HEATER_PIN, LOW);
     if (currPage == ROOT_MENU){
     lcd.setCursor(12, 0);
-    lcd.print("Heat: ON-I");;}
+    lcd.print("Heat:ON1");}
   } else if (temp >= Heater_OFF) {
     digitalWrite(HEATER_PIN, HIGH);
     if (currPage == ROOT_MENU){
@@ -769,7 +767,7 @@ void function(){
     digitalWrite(BAC_HEATER_PIN, LOW);
     if (currPage == ROOT_MENU){
     lcd.setCursor(12, 0);
-    lcd.print("Heat: ON-II");}
+    lcd.print("Heat:ON2");}
   } else if (temp >= Bac_Heater_OFF) {
     digitalWrite(BAC_HEATER_PIN, HIGH);
     if (currPage == ROOT_MENU){
@@ -785,7 +783,7 @@ void function(){
     digitalWrite(HFIRE_PIN, LOW);
     if (currPage == ROOT_MENU){
     lcd.setCursor(12, 1);
-    lcd.print("Humi: ON")}
+    lcd.print("Humi: ON");}
   } else if (hum >= Humi_OFF) {
     digitalWrite(HFIRE_PIN, HIGH);
     if (currPage == ROOT_MENU){
@@ -800,12 +798,12 @@ void function(){
   if (hum >= D_Humi_ON) {
     digitalWrite(DFIRE_PIN, LOW);
     if (currPage == ROOT_MENU){
-    lcd.setCursor(13, 2);
+    lcd.setCursor(12, 2);
     lcd.print("Dhum: ON");}
   } else if (hum <= Humi_OFF) {
     digitalWrite(DFIRE_PIN, HIGH);
     if (currPage == ROOT_MENU){
-    lcd.setCursor(13, 2);
+    lcd.setCursor(12, 2);
     lcd.print("Dhum:OFF");}
   }
 
@@ -816,13 +814,13 @@ void function(){
   if (temp >= HT_Fan_ON || ventilation_status) {
     digitalWrite(FAN_PIN, LOW);
     if (currPage == ROOT_MENU){
-    lcd.setCursor(13, 3);
-    lcd.print("Fan: ON");}
+    lcd.setCursor(12, 3);
+    lcd.print("Fan : ON");}
   } else {
     digitalWrite(FAN_PIN, HIGH);
     if (currPage == ROOT_MENU){
-    lcd.setCursor(13, 3);
-    lcd.print("Fan:OFF");}
+    lcd.setCursor(12, 3);
+    lcd.print("Fan :OFF");}
   }
 
 
@@ -879,7 +877,6 @@ void function(){
 
 
 void page_RootMenu(void) {
-  lcd.setTextSize(2);
   resetButtonStates();
   
   button1.tick();
@@ -1062,20 +1059,7 @@ void page_RootMenu(void) {
 
 
 void page_SetMenu(void) {
-  lcd.clear();
   resetButtonStates();
-
-
-  boolean updateDisplay = true;
-  
-
-  lcd.setCursor(3, 0);
-  lcd.println(F(">>SET_MENU<<"));  
-
-  // Inner loop for setting menu
-  while (true) {
-    // Capture start time
-    // uint32_t loopStartMs = millis();
 
     motor_working();
     ventilation_working();
@@ -1086,40 +1070,47 @@ void page_SetMenu(void) {
     button2.tick();
     button3.tick();
     button4.tick();
- 
-    
-    if (updateDisplay){
-      updateDisplay = false; 
-      lcd.setCursor(0, 2);
-      lcd.print("                  "); // Clear the old value
-      displayCurrentThreshold(); // Redisplay the updated value
 
-    }
+  
+
+  lcd.setCursor(3, 0);
+  lcd.println(F(">>SET_MENU<<"));  
+
+  displayCurrentThreshold(); 
+
+
 
     if (btn3_clicked || btn3_long_pressing ) {
       incrementThreshold();
       btn3_clicked = false;
       btn3_long_pressing = false;
-      updateDisplay = true;
+
+      
     }
 
     if (btn4_clicked || btn4_long_pressing) {
       decrementThreshold();
       btn4_clicked = false;
       btn4_long_pressing = false;
-      updateDisplay = true;
+
     }
 
     if (btn1_clicked) {
       currentThreshold = (currentThreshold + 1) % NUM_THRESHOLDS;
       btn1_clicked = false;
-      updateDisplay = true;
+      lcd.setCursor(0, 2);
+      lcd.print("                    ");
+      lcd.setCursor(0, 3);
+      lcd.print("                    ");
     }
 
     if (btn2_clicked) {
       currentThreshold = (currentThreshold - 1 + NUM_THRESHOLDS) % NUM_THRESHOLDS; // Ensure wrapping correctly
       btn2_clicked = false;
-      updateDisplay = true;
+      lcd.setCursor(0, 2);
+      lcd.print("                    ");
+      lcd.setCursor(0, 3);
+      lcd.print("                    ");
     }
 
     if (btn1_long_clicked) {
@@ -1133,10 +1124,8 @@ void page_SetMenu(void) {
       return;
     }
 
-    // Keep a specific pace
-    // while (millis() - loopStartMs < 25) { delay(2); }
   }
-}
+
 
 void page_MsgMenu(void) {
   lcd.clear();
@@ -1152,10 +1141,15 @@ void page_MsgMenu(void) {
   button3.tick();       
   button4.tick();       
 
+
+  tft.setCursor(0, 3);
+  tft.print("CHIP TEMP: ");
+  tft.print((esp_temp+esp_temp+esp_temp)/3);
+  tft.print(" C");
   // Display WiFi connection status and IP address
   if (WiFi.status() == WL_CONNECTED) {
     lcd.setCursor(0, 0);
-    lcd.print("WiFi: ");
+    lcd.print("Connected => ");
     lcd.print(WiFi.SSID());  // Connected SSID
     lcd.setCursor(0, 1);
     lcd.print("W_IP: ");
@@ -1185,7 +1179,7 @@ void page_MsgMenu(void) {
     // Display WiFi configuration message
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("WiFi Configuration");
+    lcd.print("For WiFi Configuration");
     lcd.setCursor(0, 1);
     lcd.print("Visit: 192.168.10.1");
     Serial.println("Starting WiFi Config...");
@@ -1205,7 +1199,7 @@ void page_MsgMenu(void) {
     if (res) {
       lcd.clear();
       lcd.setCursor(0, 0);
-      lcd.print("WiFi Connected: ");
+      lcd.print("Connected => ");
       lcd.print(WiFi.SSID());
       lcd.setCursor(0, 1);
       lcd.print("W_IP: ");
@@ -1219,6 +1213,7 @@ void page_MsgMenu(void) {
       // Try reconnecting to saved WiFi
       WiFi.begin();
       int retries = 0;
+      lcd.clear();
       while (WiFi.status() != WL_CONNECTED && retries < 10) {
         lcd.setCursor(0, 0);
         lcd.print("Reconnecting...");
@@ -1240,8 +1235,6 @@ void page_MsgMenu(void) {
         lcd.setCursor(0, 0);
         lcd.print("Reconnection Failed");
         lcd.setCursor(0, 1);
-        lcd.print("AP Mode Active");
-        lcd.setCursor(0, 2);
         lcd.print("E_IP: ");
         lcd.print(WiFi.softAPIP());
 
@@ -1266,29 +1259,27 @@ void page_MsgMenu(void) {
 
 
 void displayCurrentThreshold() {
-  lcd.setCursor(0, 0); // Set cursor to the top-left of the LCD
-  // lcd.clear(); // Clear the display before showing new information
   switch (currentThreshold) {
-    case 0: lcd.print("Heater ON: "); lcd.print(Heater_ON, 1); lcd.print(" C"); break;
-    case 1: lcd.print("Heater OFF: "); lcd.print(Heater_OFF, 1); lcd.print(" C"); break;
-    case 2: lcd.print("B. Heater ON: "); lcd.print(Bac_Heater_ON, 1); lcd.print(" C"); break;
-    case 3: lcd.print("B. Heater OFF: "); lcd.print(Bac_Heater_OFF, 1); lcd.print(" C"); break;
-    case 4: lcd.print("Humidifier ON: "); lcd.print(Humi_ON, 1); lcd.print(" %"); break;
-    case 5: lcd.print("Humidifier OFF: "); lcd.print(Humi_OFF, 1); lcd.print(" %"); break;
-    case 6: lcd.print("Dehumidifier ON: "); lcd.print(D_Humi_ON, 1); lcd.print(" %"); break;
-    case 7: lcd.print("Dehumidifier OFF: "); lcd.print(D_Humi_OFF, 1); lcd.print(" %"); break;
-    case 8: lcd.print("O.Temp Fan ON: "); lcd.print(HT_Fan_ON, 1); lcd.print(" C"); break;
-    case 9: lcd.print("O.Temp Alarm ON: "); lcd.print(HT_Alarm_ON, 1); lcd.print(" C"); break;
-    case 10: lcd.print("O.Humi Alarm ON: "); lcd.print(HH_Alarm_ON, 1); lcd.print(" %"); break;
-    case 11: lcd.print("Low Temp Alarm: "); lcd.print(LT_Alarm_ON, 1); lcd.print(" C"); break;
-    case 12: lcd.print("Low Humi Alarm: "); lcd.print(LH_Alarm_ON, 1); lcd.print(" %"); break;
-    case 13: lcd.print("Motor Off: "); lcd.print(motor_off_minute); lcd.print(" min"); break;
-    case 14: lcd.print("Motor Run: "); lcd.print(motor_running_second); lcd.print(" sec"); break;
-    case 15: lcd.print("Vent Off: "); lcd.print(ventilation_off_minute); lcd.print(" min"); break;
-    case 16: lcd.print("Vent Run: "); lcd.print(ventilation_running_second); lcd.print(" sec"); break;
-    case 17: lcd.print("Day: "); lcd.print(day); break;
-    case 18: lcd.print("Temp Calib: "); lcd.print(t_cal, 1); lcd.print(" C"); break;
-    case 19: lcd.print("Humi Calib: "); lcd.print(h_cal, 1); lcd.print(" %"); break;
+    case 0: lcd.setCursor(0,2); lcd.print("1.HEATER ON:"); lcd.setCursor(7,3); lcd.print(Heater_ON, 1); lcd.print(" C"); break;
+    case 1: lcd.setCursor(0,2); lcd.print("2.HEATER OFF:"); lcd.setCursor(7,3); lcd.print(Heater_OFF, 1); lcd.print(" C"); break;
+    case 2: lcd.setCursor(0,2); lcd.print("3.BACKUP HEATER ON:"); lcd.setCursor(7,3); lcd.print(Bac_Heater_ON, 1); lcd.print(" C"); break;
+    case 3: lcd.setCursor(0,2); lcd.print("4.BACKUP HEATER OFF:"); lcd.setCursor(7,3); lcd.print(Bac_Heater_OFF, 1); lcd.print(" C"); break;
+    case 4: lcd.setCursor(0,2); lcd.print("5.HUMIDIFIER ON:"); lcd.setCursor(7,3); lcd.print(Humi_ON, 1); lcd.print(" %"); break;
+    case 5: lcd.setCursor(0,2); lcd.print("6.HUMIDIFIER OFF:"); lcd.setCursor(7,3); lcd.print(Humi_OFF, 1); lcd.print(" %"); break;
+    case 6: lcd.setCursor(0,2); lcd.print("7.DEHUMIDIFIER ON:"); lcd.setCursor(7,3); lcd.print(D_Humi_ON, 1); lcd.print(" %"); break;
+    case 7: lcd.setCursor(0,2); lcd.print("8.DEHUMIDIFIER OFF:"); lcd.setCursor(7,3); lcd.print(D_Humi_OFF, 1); lcd.print(" %"); break;
+    case 8:lcd.setCursor(0,2); lcd.print("9.O_TEMP FAN ON:"); lcd.setCursor(7,3); lcd.print(HT_Fan_ON, 1); lcd.print(" C"); break;
+    case 9: lcd.setCursor(0,2); lcd.print("10.O_TEMP ALARM ON: "); lcd.setCursor(7,3); lcd.print(HT_Alarm_ON, 1); lcd.print(" C"); break;
+    case 10: lcd.setCursor(0,2); lcd.print("11.O_HUMI ALARM ON:"); lcd.setCursor(7,3); lcd.print(HH_Alarm_ON, 1); lcd.print(" %"); break;
+    case 11: lcd.setCursor(0,2); lcd.print("12.L_TEMP ALARM ON:"); lcd.setCursor(7,3); lcd.print(LT_Alarm_ON, 1); lcd.print(" C"); break;
+    case 12: lcd.setCursor(0,2); lcd.print("13.L_HUMI ALARM ON:"); lcd.setCursor(7,3); lcd.print(LH_Alarm_ON, 1); lcd.print(" %"); break;
+    case 13: lcd.setCursor(0,2); lcd.print("14.MOTOR OFF PERIOD:"); lcd.setCursor(7,3); lcd.print(motor_off_minute, 0); lcd.print(" Min"); break;
+    case 14: lcd.setCursor(0,2); lcd.print("15.MOTOR ON PERIOD:"); lcd.setCursor(7,3); lcd.print(motor_running_second, 0); lcd.print(" Sec"); break;
+    case 15: lcd.setCursor(0,2); lcd.print("16.VENT OFF PERIOD:"); lcd.setCursor(7,3); lcd.print(ventilation_off_minute, 0); lcd.print(" Min"); break;
+    case 16: lcd.setCursor(0,2); lcd.print("17.VENT ON PERIOD:"); lcd.setCursor(7,3); lcd.print(ventilation_running_second, 0); lcd.print(" Sec"); break;
+    case 17: lcd.setCursor(0,2); lcd.print("18.Day:"); lcd.setCursor(7,3); lcd.print(day); break;
+    case 18: lcd.setCursor(0,2); lcd.print("19.TEMP CALIBRATION:"); lcd.setCursor(7,3); lcd.print(t_cal, 1); lcd.print(" C"); break;
+    case 19: lcd.setCursor(0,2); lcd.print("20.HUMI CALIBRATION:"); lcd.setCursor(7,3); lcd.print(h_cal, 1); lcd.print(" %"); break;
   }
 }
 

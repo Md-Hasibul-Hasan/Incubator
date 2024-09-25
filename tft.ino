@@ -19,12 +19,12 @@ WebServer server(80);
 
 #define HEATER_PIN 16
 #define BAC_HEATER_PIN 17
-#define HFIRE_PIN 21
-#define DFIRE_PIN 22
-#define MOTOR_F_PIN 25
-#define MOTOR_B_PIN 26
-#define FAN_PIN 33
-#define ALARM_PIN 32
+#define HFIRE_PIN 26
+#define DFIRE_PIN 25                            
+#define MOTOR_F_PIN 33
+#define MOTOR_B_PIN 32
+#define FAN_PIN 4
+#define ALARM_PIN 1
 
 const int btn1 = 12;
 const int btn2 = 13;
@@ -34,7 +34,7 @@ const int btn4 = 27;
 
 // TFT Display
 #define TFT_CS     15   
-#define TFT_DC     2   
+#define TFT_DC     2  
 // #define TFT_RST    -1  
 // #define TFT_MOSI   23   
 // #define TFT_CLK    18  
@@ -44,21 +44,21 @@ const int btn4 = 27;
 #define SD_CS      5   
 // #define SD_MOSI    23  
 // #define SD_MISO    19   
-// #define SD_CLK     18   
+// #define SD_CLK     18             
 
 
 
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 
 
-#define DHTPIN 4
+#define DHTPIN 22
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
 
-OneButton button1(btn1, true);
-OneButton button2(btn2, true);
-OneButton button3(btn3, true);
-OneButton button4(btn4, true);
+OneButton button1(btn1, true); // true means active-high (press = HIGH)
+OneButton button2(btn2, true); // true means active-high (press = HIGH)
+OneButton button3(btn3, true); // true means active-high (press = HIGH)
+OneButton button4(btn4, true); // true means active-high (press = HIGH)
 
 
 
@@ -485,7 +485,7 @@ void setup() {
     pinMode(MOTOR_F_PIN, INPUT_PULLUP);
     pinMode(MOTOR_B_PIN, INPUT_PULLUP);
     pinMode(FAN_PIN, INPUT_PULLUP);
-    pinMode(ALARM_PIN, INPUT_PULLUP);
+    // pinMode(ALARM_PIN, INPUT_PULLUP);
 
     delay(100);
 
@@ -507,7 +507,7 @@ void setup() {
     digitalWrite(MOTOR_F_PIN, HIGH);
     digitalWrite(MOTOR_B_PIN, HIGH);
     digitalWrite(FAN_PIN, HIGH);
-    digitalWrite(ALARM_PIN, HIGH);
+    // digitalWrite(ALARM_PIN, HIGH);
 
     delay(200);
 
@@ -847,17 +847,17 @@ void function(){
 
   if (alarm_status){
     if (temp >= HT_Alarm_ON || hum >= HH_Alarm_ON || temp <= LT_Alarm_ON || hum <= LH_Alarm_ON) {
-      digitalWrite(ALARM_PIN, LOW);  // for relay
+      // digitalWrite(ALARM_PIN, LOW);  // for relay
       // digitalWrite(ALARM_PIN, HIGH); // for active buzzer
-      // tone(ALARM_PIN, 1000); // for passive buzzer
+      tone(ALARM_PIN, 1000); // for passive buzzer
       if (currPage == ROOT_MENU){
       tft.fillRect(240, 168, tft.width(), 18, ILI9341_RED);
       tft.setCursor(180, 170);
       tft.print("ALA:   ON");}
     } else {
-      digitalWrite(ALARM_PIN, HIGH); // for relay
+      // digitalWrite(ALARM_PIN, HIGH); // for relay
       // digitalWrite(ALARM_PIN, LOW); // for active buzzer
-      // noTone(ALARM_PIN); // for passive buzzer
+      noTone(ALARM_PIN); // for passive buzzer
       if (currPage == ROOT_MENU){
       tft.fillRect(240, 168, tft.width(), 18, ILI9341_RED);
       tft.setCursor(180, 170);
@@ -865,17 +865,17 @@ void function(){
     }
   } else{
     if (temp >= HT_Alarm_ON || hum >= HH_Alarm_ON || temp <= LT_Alarm_ON || hum <= LH_Alarm_ON) {
-      digitalWrite(ALARM_PIN, HIGH); // for relay
+      // digitalWrite(ALARM_PIN, HIGH); // for relay
       // digitalWrite(ALARM_PIN, LOW); // for active buzzer
-      // noTone(ALARM_PIN); // for passive buzzer
+      noTone(ALARM_PIN); // for passive buzzer
       if (currPage == ROOT_MENU){
       tft.fillRect(240, 168, tft.width(), 18, ILI9341_RED);
       tft.setCursor(180, 170);
       tft.print("ALA:   ON");}
     } else {
-      digitalWrite(ALARM_PIN, HIGH); // for relay
+      // digitalWrite(ALARM_PIN, HIGH); // for relay
       // digitalWrite(ALARM_PIN, LOW); // for active buzzer
-      // noTone(ALARM_PIN); // for passive buzzer
+      noTone(ALARM_PIN); // for passive buzzer
       if (currPage == ROOT_MENU){
       tft.fillRect(240, 168, tft.width(), 18, ILI9341_RED);
       tft.setCursor(180, 170);
@@ -1103,16 +1103,16 @@ void page_SetMenu(void) {
   dayCount();
   function();
 
+  // Update button states
+  button1.tick();
+  button2.tick();
+  button3.tick();
+  button4.tick();
+ 
   tft.setTextSize(2);
   tft.setCursor(90, 10);
   tft.print(">>SET_MENU<<");  
 
-    // Update button states
-    button1.tick();
-    button2.tick();
-    button3.tick();
-    button4.tick();
- 
 
     displayCurrentThreshold(); 
 
@@ -1174,25 +1174,26 @@ void page_MsgMenu(void) {
 
   tft.setTextSize(2);
 
+  tft.fillRect(225, 68, 45, 18, ILI9341_BLUE);
   tft.setCursor(20, 70);
   tft.print("CHIP TEMPARATURE: ");
-  tft.print(esp_temp);
+  tft.print((esp_temp+esp_temp+esp_temp)/3);
   tft.print(" C");
 
 
   // Check WiFi status and display IP address
   if (WiFi.status() == WL_CONNECTED) {
-    tft.fillRect(0, 0, tft.width(), 90, ILI9341_BLACK);
+    // tft.fillRect(0, 0, tft.width(), 90, ILI9341_BLACK);
     tft.setCursor(10, 10);
-    tft.print("Connected to ");
+    tft.print("Connected => ");
     tft.print(WiFi.SSID());
     tft.setCursor(50, 40);
     tft.print("W_IP: ");
     tft.print(WiFi.localIP());
   } else {
-    tft.fillRect(0, 0, tft.width(), 90, ILI9341_BLACK);
+    // tft.fillRect(0, 0, tft.width(), 90, ILI9341_BLACK);
     tft.setCursor(10, 10);
-    tft.print(" WiFi Not Connected!!!");
+    tft.print(" WiFi Not Connected !!!");
     tft.setCursor(50, 40);
     tft.print("E_IP: ");
     tft.print(WiFi.softAPIP());
@@ -1230,7 +1231,7 @@ void page_MsgMenu(void) {
     WiFiManager wm;
     wm.setAPStaticIPConfig(apIP, gateway, subnet);
     wm.setConfigPortalTimeout(180); // Close portal after 3 minutes
-    bool res = wm.startConfigPortal("HS_INCUBATOR");
+    bool res = wm.startConfigPortal("WiFi Configaration...");
 
 
 
@@ -1239,7 +1240,7 @@ void page_MsgMenu(void) {
     if (res) {
       tft.fillRect(0, 0, tft.width(), 90, ILI9341_BLACK);
       tft.setCursor(10, 10);
-      tft.print("Connected to ");
+      tft.print("Connected => ");
       tft.print(WiFi.SSID());
       tft.setCursor(50, 40);
       tft.print("W_IP: ");
